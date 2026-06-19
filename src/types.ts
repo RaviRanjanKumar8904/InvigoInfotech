@@ -58,3 +58,28 @@ export interface FAQItem {
   question: string;
   answer: string;
 }
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  admin: string;
+  type: 'payment' | 'certificate' | 'user' | 'setting' | 'error' | 'communication';
+}
+
+export interface PortalSettings {
+  portalName: string;
+  maintenanceMode: boolean;
+  announcementText: string;
+  supportPhone: string;
+  themeAccent: string;
+}
+
+export interface ErrorReport {
+  id: string;
+  timestamp: string;
+  message: string;
+  source: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  resolved: boolean;
+}

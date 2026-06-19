@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { 
-  Users, CreditCard, Award, ShieldAlert, Search, Filter, 
-  Trash2, Edit3, Shield, ShieldOff, Check, X, CheckSquare, 
-  Settings2, Activity, MessageSquare, RefreshCw, BarChart3, TrendingUp, AlertTriangle
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Users, CreditCard, Award, ShieldAlert, Search, Filter,
+  Trash2, Edit3, Shield, ShieldOff, Check, X, CheckSquare,
+  Settings2, Activity, MessageSquare, RefreshCw, BarChart3,
+  TrendingUp, AlertTriangle, LayoutDashboard, FileText,
+  Bell, Mail, ChevronLeft, ChevronRight, Download,
+  Clock, Zap, Eye, EyeOff, Send, AlertCircle, CheckCircle,
+  XCircle, Info, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, Calendar
 } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs } from 'firebase/firestore';
-import { EnrollmentState } from '../types';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, addDoc } from 'firebase/firestore';
+import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport } from '../types';
+import { INTERNSHIP_DOMAINS } from '../data';
 import { downloadCertificatePDF } from '../utils/pdfGenerator';
 
 interface AdminPanelProps {
@@ -15,47 +20,117 @@ interface AdminPanelProps {
   setCurrentTab: (tab: string) => void;
 }
 
-interface ActivityLog {
-  id: string;
-  timestamp: string;
-  action: string;
-  admin: string;
-  type: 'payment' | 'certificate' | 'user' | 'setting';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'settings' | 'logs' | 'errors' | 'communication';
+
+// ─── Helper: resolve domain title from domainId ───
+function getDomainTitle(domainId: string): string {
+  const domain = INTERNSHIP_DOMAINS.find(d => d.id === domainId);
+  return domain ? domain.title : domainId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-interface PortalSettings {
-  portalName: string;
-  maintenanceMode: boolean;
-  announcementText: string;
-  supportPhone: string;
+// ─── Helper: check if internship duration is complete ───
+function isDurationComplete(startDate: string, durationWeeks: number): boolean {
+  if (!startDate) return false;
+  const start = new Date(startDate);
+  const endDate = new Date(start.getTime() + durationWeeks * 7 * 24 * 60 * 60 * 1000);
+  return new Date() >= endDate;
 }
+
+// ─── Helper: days remaining ───
+function getDaysRemaining(startDate: string, durationWeeks: number): number {
+  if (!startDate) return 0;
+  const start = new Date(startDate);
+  const endDate = new Date(start.getTime() + durationWeeks * 7 * 24 * 60 * 60 * 1000);
+  const diff = endDate.getTime() - new Date().getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+// ─── Helper: completion percentage ───
+function getCompletionPct(startDate: string, durationWeeks: number): number {
+  if (!startDate) return 0;
+  const start = new Date(startDate);
+  const totalMs = durationWeeks * 7 * 24 * 60 * 60 * 1000;
+  const elapsed = new Date().getTime() - start.getTime();
+  return Math.min(100, Math.max(0, Math.round((elapsed / totalMs) * 100)));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN ADMIN PANEL COMPONENT
+// ═══════════════════════════════════════════════════════════
 
 export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelProps) {
+  const [activeSection, setActiveSection] = useState<AdminSection>('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [allEnrollments, setAllEnrollments] = useState<EnrollmentState[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Search & Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [domainFilter, setDomainFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [editingEnrollment, setEditingEnrollment] = useState<EnrollmentState | null>(null);
-  
-  // Dynamic metrics
-  const [trafficCount, setTrafficCount] = useState(1340);
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [settings, setSettings] = useState<PortalSettings>({
-    portalName: 'Invigo Infotech',
-    maintenanceMode: false,
-    announcementText: '🚨 Standard system upgrade scheduled for June 25th.',
-    supportPhone: '+91 89047 88201'
-  });
+  const [certFilter, setCertFilter] = useState('All');
+  const [degreeFilter, setDegreeFilter] = useState('All');
+  const [sortField, setSortField] = useState<string>('enrollmentDate');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // Modal Editing form state
+  // Selection for bulk actions
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Edit modal
+  const [editingEnrollment, setEditingEnrollment] = useState<EnrollmentState | null>(null);
   const [editName, setEditName] = useState('');
   const [editCollege, setEditCollege] = useState('');
   const [editDegree, setEditDegree] = useState('');
   const [editDuration, setEditDuration] = useState(8);
+  const [editPhone, setEditPhone] = useState('');
+  const [editFieldOfStudy, setEditFieldOfStudy] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
 
-  // Load and subscribe to ALL enrollments
+  // Enroll Student modal
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollForm, setEnrollForm] = useState({
+    fullName: '', email: '', phone: '', collegeName: '',
+    degree: 'B.Tech' as const, fieldOfStudy: '', currentYear: '3rd Year',
+    passingYear: '2027', domainId: 'ai_ml', durationWeeks: 8,
+    startDate: new Date().toISOString().split('T')[0], motivation: ''
+  });
+  const [enrollLoading, setEnrollLoading] = useState(false);
+
+  // Change Domain modal
+  const [changingDomainFor, setChangingDomainFor] = useState<EnrollmentState | null>(null);
+  const [newDomainId, setNewDomainId] = useState('');
+
+  // Custom cert date modal
+  const [certDateFor, setCertDateFor] = useState<EnrollmentState | null>(null);
+  const [customCertDate, setCustomCertDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Metrics
+  const [trafficCount, setTrafficCount] = useState(1340);
+
+  // Activity Logs
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [logFilter, setLogFilter] = useState<string>('all');
+
+  // Error Reports
+  const [errors, setErrors] = useState<ErrorReport[]>([]);
+
+  // Portal Settings
+  const [settings, setSettings] = useState<PortalSettings>({
+    portalName: 'Invigo Infotech',
+    maintenanceMode: false,
+    announcementText: '🚨 Standard system upgrade scheduled for June 25th.',
+    supportPhone: '+91 89047 88201',
+    themeAccent: '#2563eb'
+  });
+
+  // Communication
+  const [commSubject, setCommSubject] = useState('');
+  const [commMessage, setCommMessage] = useState('');
+
+  // Confirmation modal
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  // ─── Load enrollments from Firestore ───
   useEffect(() => {
     const enrollmentsCol = collection(db, 'enrollments');
     const unsubscribe = onSnapshot(enrollmentsCol, (snapshot) => {
@@ -66,33 +141,38 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
           ...docSnap.data()
         } as EnrollmentState);
       });
-      // Sort chronologically
       fetched.sort((a, b) => new Date(b.enrollmentDate || '').getTime() - new Date(a.enrollmentDate || '').getTime());
       setAllEnrollments(fetched);
       setIsLoading(false);
     }, (err) => {
       console.error('Error fetching admin registrations:', err);
+      addError(`Firestore snapshot error: ${err.message}`, 'Firestore', 'high');
       setIsLoading(false);
     });
 
-    // Create default mock logs for visual aesthetics
+    // Load initial logs
     const initialLogs: ActivityLog[] = [
-      { id: '1', timestamp: new Date(Date.now() - 300000).toLocaleString(), action: 'Admin logged in', admin: 'raviranjan8904@gmail.com', type: 'user' },
-      { id: '2', timestamp: new Date(Date.now() - 1200000).toLocaleString(), action: 'Configured global announcement headline', admin: 'raviranjan8904@gmail.com', type: 'setting' },
-      { id: '3', timestamp: new Date(Date.now() - 3600000).toLocaleString(), action: 'Verified payment for INV-2026-T48B92', admin: 'raviranjan8904@gmail.com', type: 'payment' }
+      { id: '1', timestamp: new Date(Date.now() - 300000).toLocaleString(), action: 'Admin panel session initialized', admin: currentUser?.email || 'admin', type: 'user' },
+      { id: '2', timestamp: new Date(Date.now() - 1200000).toLocaleString(), action: 'System health check completed — all nodes operational', admin: 'system', type: 'setting' },
     ];
     setLogs(initialLogs);
 
-    // Load custom settings if saved in localStorage
+    // Load settings from localStorage
     const savedSettings = localStorage.getItem('invigo_admin_settings');
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      try { setSettings(JSON.parse(savedSettings)); } catch (e) { /* ignore */ }
     }
+
+    // Simulate initial errors for demo
+    setErrors([
+      { id: 'err_1', timestamp: new Date(Date.now() - 7200000).toLocaleString(), message: 'Firestore cold-start latency spike detected (450ms)', source: 'Firestore SDK', severity: 'low', resolved: true },
+    ]);
 
     return () => unsubscribe();
   }, []);
 
-  const addLog = (action: string, type: 'payment' | 'certificate' | 'user' | 'setting') => {
+  // ─── Helpers ───
+  const addLog = (action: string, type: ActivityLog['type']) => {
     const newLog: ActivityLog = {
       id: Date.now().toString(),
       timestamp: new Date().toLocaleString(),
@@ -103,7 +183,19 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     setLogs(prev => [newLog, ...prev]);
   };
 
-  // Save edit form changes
+  const addError = (message: string, source: string, severity: ErrorReport['severity']) => {
+    const newError: ErrorReport = {
+      id: Date.now().toString(),
+      timestamp: new Date().toLocaleString(),
+      message,
+      source,
+      severity,
+      resolved: false
+    };
+    setErrors(prev => [newError, ...prev]);
+  };
+
+  // ─── CRUD Operations ───
   const handleSaveEdit = async () => {
     if (!editingEnrollment) return;
     try {
@@ -112,57 +204,141 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         fullName: editName,
         collegeName: editCollege,
         degree: editDegree,
-        durationWeeks: editDuration
+        durationWeeks: editDuration,
+        phone: editPhone,
+        fieldOfStudy: editFieldOfStudy,
+        startDate: editStartDate
       });
-      addLog(`Updated student profile for ${editingEnrollment.fullName}`, 'user');
+      addLog(`Updated profile for ${editName} (${editingEnrollment.candidateId})`, 'user');
       setEditingEnrollment(null);
-    } catch (err) {
-      alert(`Failed to save edit details: ${err}`);
+    } catch (err: any) {
+      alert(`Failed to save: ${err.message}`);
+      addError(`Edit save failed: ${err.message}`, 'Firestore', 'medium');
     }
   };
 
-  // Toggle user block simulation
+  // ─── Enroll Student (Admin) ───
+  const handleAdminEnroll = async () => {
+    if (!enrollForm.fullName.trim() || !enrollForm.email.trim()) {
+      alert('Full name and email are required.');
+      return;
+    }
+    setEnrollLoading(true);
+    try {
+      const candidateId = `INV-ADM-${Date.now().toString(36).toUpperCase()}`;
+      const newEnrollment: EnrollmentState = {
+        ...enrollForm,
+        candidateId,
+        enrollmentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        status: 'In Progress',
+        paymentVerified: true,
+        certificateIssued: false,
+        amountPaid: 0,
+        paymentTxnId: 'ADMIN_ENROLLED',
+        trainingMode: 'online'
+      };
+      await setDoc(doc(db, 'enrollments', candidateId), newEnrollment);
+      addLog(`Admin enrolled ${enrollForm.fullName} into ${getDomainTitle(enrollForm.domainId)}`, 'user');
+      setShowEnrollModal(false);
+      setEnrollForm({
+        fullName: '', email: '', phone: '', collegeName: '',
+        degree: 'B.Tech', fieldOfStudy: '', currentYear: '3rd Year',
+        passingYear: '2027', domainId: 'ai_ml', durationWeeks: 8,
+        startDate: new Date().toISOString().split('T')[0], motivation: ''
+      });
+    } catch (err: any) {
+      alert(`Enrollment failed: ${err.message}`);
+      addError(`Admin enrollment failed: ${err.message}`, 'Firestore', 'high');
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
+  // ─── Change Domain ───
+  const handleChangeDomain = async () => {
+    if (!changingDomainFor || !newDomainId) return;
+    try {
+      await updateDoc(doc(db, 'enrollments', changingDomainFor.candidateId), { domainId: newDomainId });
+      addLog(`Changed domain for ${changingDomainFor.fullName} → ${getDomainTitle(newDomainId)}`, 'user');
+      setChangingDomainFor(null);
+    } catch (err: any) {
+      alert(`Domain change failed: ${err.message}`);
+    }
+  };
+
+  // ─── Issue Certificate with Custom Date ───
+  const handleIssueCertificateWithDate = async (enrollment: EnrollmentState, dateStr: string) => {
+    try {
+      const certDate = new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      await updateDoc(doc(db, 'enrollments', enrollment.candidateId), {
+        certificateIssued: true,
+        certificateDate: certDate,
+        status: 'Completed'
+      });
+      addLog(`Issued certificate to ${enrollment.fullName} (date: ${certDate})`, 'certificate');
+      setCertDateFor(null);
+    } catch (err: any) {
+      alert(`Certificate issue error: ${err.message}`);
+      addError(`Cert issue failed: ${err.message}`, 'Firestore', 'high');
+    }
+  };
+
   const handleToggleBlockUser = async (enrollment: EnrollmentState) => {
     try {
       const docRef = doc(db, 'enrollments', enrollment.candidateId);
       const newBlockedState = !enrollment.blocked;
-      await updateDoc(docRef, {
-        blocked: newBlockedState
-      });
+      await updateDoc(docRef, { blocked: newBlockedState });
       addLog(`${newBlockedState ? 'Blocked' : 'Unblocked'} user ${enrollment.fullName}`, 'user');
-    } catch (err) {
-      alert(`Failed to lock user profile: ${err}`);
+    } catch (err: any) {
+      alert(`Failed: ${err.message}`);
+      addError(`Block toggle failed: ${err.message}`, 'Firestore', 'medium');
     }
   };
 
-  // single payment verification
   const handleVerifyPayment = async (enrollment: EnrollmentState) => {
     try {
       const docRef = doc(db, 'enrollments', enrollment.candidateId);
-      await updateDoc(docRef, {
-        paymentVerified: true
-      });
-      addLog(`Verified payment for candidate ${enrollment.fullName} (${enrollment.candidateId})`, 'payment');
-    } catch (err) {
-      alert(`Payment verification error: ${err}`);
+      await updateDoc(docRef, { paymentVerified: true, status: 'In Progress' });
+      addLog(`Verified payment for ${enrollment.fullName} (${enrollment.candidateId}) — course activated`, 'payment');
+    } catch (err: any) {
+      alert(`Payment verification error: ${err.message}`);
+      addError(`Payment verify failed: ${err.message}`, 'Firestore', 'high');
     }
   };
 
-  // single certificate issuance
   const handleIssueCertificate = async (enrollment: EnrollmentState) => {
     try {
       const docRef = doc(db, 'enrollments', enrollment.candidateId);
       await updateDoc(docRef, {
         certificateIssued: true,
-        certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        status: 'Completed'
       });
-      addLog(`Issued internship credentials to ${enrollment.fullName}`, 'certificate');
-    } catch (err) {
-      alert(`Certificate issue error: ${err}`);
+      addLog(`Issued certificate to ${enrollment.fullName} (${enrollment.candidateId})`, 'certificate');
+    } catch (err: any) {
+      alert(`Certificate issue error: ${err.message}`);
+      addError(`Cert issue failed: ${err.message}`, 'Firestore', 'high');
     }
   };
 
-  // Bulk Actions
+  const handleDeleteEnrollment = async (candidateId: string, name: string) => {
+    setConfirmAction({
+      message: `Permanently delete ${name}'s enrollment (${candidateId})?`,
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'enrollments', candidateId));
+          addLog(`Deleted enrollment for ${name} (${candidateId})`, 'user');
+          setSelectedIds(prev => prev.filter(id => id !== candidateId));
+        } catch (err: any) {
+          alert(`Delete failed: ${err.message}`);
+          addError(`Delete failed: ${err.message}`, 'Firestore', 'high');
+        }
+        setConfirmAction(null);
+      }
+    });
+  };
+
+  // ─── Bulk Actions ───
   const handleBulkVerifyPayments = async () => {
     if (selectedIds.length === 0) return;
     let count = 0;
@@ -170,15 +346,14 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       for (const id of selectedIds) {
         const item = allEnrollments.find(e => e.candidateId === id);
         if (item && !item.paymentVerified) {
-          await updateDoc(doc(db, 'enrollments', id), { paymentVerified: true });
+          await updateDoc(doc(db, 'enrollments', id), { paymentVerified: true, status: 'In Progress' });
           count++;
         }
       }
-      addLog(`Bulk verified ${count} pending payments.`, 'payment');
+      addLog(`Bulk verified ${count} payments`, 'payment');
       setSelectedIds([]);
-      alert(`Successfully verified ${count} billing profiles!`);
-    } catch (err) {
-      alert(`Bulk verification ended with error: ${err}`);
+    } catch (err: any) {
+      addError(`Bulk verify error: ${err.message}`, 'Firestore', 'high');
     }
   };
 
@@ -188,797 +363,1674 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     try {
       for (const id of selectedIds) {
         const item = allEnrollments.find(e => e.candidateId === id);
-        if (item && !item.certificateIssued) {
+        if (item && !item.certificateIssued && item.paymentVerified && isDurationComplete(item.startDate, item.durationWeeks)) {
           await updateDoc(doc(db, 'enrollments', id), {
             certificateIssued: true,
-            certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+            certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+            status: 'Completed'
           });
           count++;
         }
       }
-      addLog(`Bulk issued ${count} certificates.`, 'certificate');
+      addLog(`Bulk issued ${count} certificates`, 'certificate');
       setSelectedIds([]);
-      alert(`Successfully issued credential nodes for ${count} students!`);
-    } catch (err) {
-      alert(`Bulk certificate issuance error: ${err}`);
+    } catch (err: any) {
+      addError(`Bulk cert error: ${err.message}`, 'Firestore', 'high');
     }
   };
 
-  const handleDeleteEnrollment = async (candidateId: string, name: string) => {
-    if (!window.confirm(`Are you completely sure you want to delete ${name}'s enrollment enrollment?`)) return;
-    try {
-      await deleteDoc(doc(db, 'enrollments', candidateId));
-      addLog(`Permanently deleted enrollment node for ${name}`, 'user');
-    } catch (err) {
-      alert(`Failed to delete record: ${err}`);
-    }
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setConfirmAction({
+      message: `Permanently delete ${selectedIds.length} selected enrollments?`,
+      onConfirm: async () => {
+        let count = 0;
+        for (const id of selectedIds) {
+          try {
+            await deleteDoc(doc(db, 'enrollments', id));
+            count++;
+          } catch (e) { /* skip */ }
+        }
+        addLog(`Bulk deleted ${count} enrollments`, 'user');
+        setSelectedIds([]);
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleSaveSettings = () => {
     localStorage.setItem('invigo_admin_settings', JSON.stringify(settings));
-    addLog(`Updated portal global rules`, 'setting');
-    alert('Dynamic portal values hot-saved successfully!');
+    addLog('Updated portal global settings', 'setting');
   };
 
-  // Filter & Search Logic
-  const filteredEnrollments = allEnrollments.filter(e => {
-    const matchesSearch = 
-      e.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.collegeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.candidateId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      e.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDomain = domainFilter === 'All' || e.domainId === domainFilter;
-    const matchesPayment = paymentFilter === 'All' || 
-      (paymentFilter === 'Verified' && e.paymentVerified) || 
-      (paymentFilter === 'Pending' && !e.paymentVerified);
+  // ─── Filter & Sort Logic ───
+  const filteredEnrollments = useMemo(() => {
+    let result = allEnrollments.filter(e => {
+      const matchesSearch =
+        e.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (e.collegeName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.candidateId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesDomain && matchesPayment;
-  });
+      const matchesDomain = domainFilter === 'All' || e.domainId === domainFilter;
+      const matchesPayment = paymentFilter === 'All' ||
+        (paymentFilter === 'Verified' && e.paymentVerified) ||
+        (paymentFilter === 'Pending' && !e.paymentVerified);
+      const matchesCert = certFilter === 'All' ||
+        (certFilter === 'Issued' && e.certificateIssued) ||
+        (certFilter === 'Pending' && !e.certificateIssued);
+      const matchesDegree = degreeFilter === 'All' || e.degree === degreeFilter;
 
-  // Calculate Metrics
-  const totalVerifiedRevenue = allEnrollments
-    .filter(e => e.paymentVerified)
-    .reduce((sum) => sum + 1999, 0); // Flat subsidized fee ₹1999 per student
+      return matchesSearch && matchesDomain && matchesPayment && matchesCert && matchesDegree;
+    });
 
-  const pendingVerificationCount = allEnrollments.filter(e => !e.paymentVerified).length;
-  const certifiedCount = allEnrollments.filter(e => e.certificateIssued).length;
+    // Sorting
+    result.sort((a, b) => {
+      let valA: any, valB: any;
+      switch (sortField) {
+        case 'fullName': valA = a.fullName.toLowerCase(); valB = b.fullName.toLowerCase(); break;
+        case 'enrollmentDate': valA = new Date(a.enrollmentDate || '').getTime(); valB = new Date(b.enrollmentDate || '').getTime(); break;
+        case 'durationWeeks': valA = a.durationWeeks; valB = b.durationWeeks; break;
+        case 'domainId': valA = a.domainId; valB = b.domainId; break;
+        default: valA = new Date(a.enrollmentDate || '').getTime(); valB = new Date(b.enrollmentDate || '').getTime();
+      }
+      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [allEnrollments, searchTerm, domainFilter, paymentFilter, certFilter, degreeFilter, sortField, sortDir]);
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  // ─── Computed Metrics ───
   const totalStudents = allEnrollments.length;
+  const verifiedPayments = allEnrollments.filter(e => e.paymentVerified).length;
+  const pendingPayments = allEnrollments.filter(e => !e.paymentVerified).length;
+  const certifiedCount = allEnrollments.filter(e => e.certificateIssued).length;
+  const totalRevenue = verifiedPayments * 1999;
+  const blockedCount = allEnrollments.filter(e => e.blocked).length;
+  const activeErrors = errors.filter(e => !e.resolved).length;
+
+  // Domain distribution for chart
+  const domainDistribution = useMemo(() => {
+    const map: Record<string, number> = {};
+    allEnrollments.forEach(e => {
+      const title = getDomainTitle(e.domainId);
+      map[title] = (map[title] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [allEnrollments]);
+
+  const maxDomainCount = Math.max(...domainDistribution.map(d => d[1]), 1);
+
+  // ─── Sidebar Nav Items ───
+  const navItems: { id: AdminSection; label: string; icon: any; badge?: number }[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'users', label: 'User Management', icon: Users, badge: totalStudents },
+    { id: 'certificates', label: 'Certificates', icon: Award, badge: certifiedCount },
+    { id: 'settings', label: 'Settings', icon: Settings2 },
+    { id: 'logs', label: 'Activity Logs', icon: Activity, badge: logs.length },
+    { id: 'errors', label: 'Error Reports', icon: AlertTriangle, badge: activeErrors },
+    { id: 'communication', label: 'Communication', icon: MessageSquare },
+  ];
+
+  // Log filter
+  const filteredLogs = logFilter === 'all' ? logs : logs.filter(l => l.type === logFilter);
+
+  // ═══════════════════════════════════════════════════════════
+  //   R E N D E R
+  // ═══════════════════════════════════════════════════════════
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-blue-400" /> : <ArrowDown className="h-3 w-3 text-blue-400" />;
+  };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      
-      {/* Admin Header with Glowing Accents */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="px-3.5 py-1 rounded-full bg-blue-600 text-white font-mono text-[10px] font-extrabold uppercase tracking-widest shadow-md">
-              👑 ADMINISTRATIVE SYSTEMS SECURED
-            </span>
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+    <div className="flex min-h-[calc(100vh-130px)]">
+
+      {/* ══════════ SIDEBAR ══════════ */}
+      <motion.aside
+        initial={false}
+        animate={{ width: sidebarCollapsed ? 72 : 260 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className="sticky top-0 self-start h-[calc(100vh-130px)] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-800 flex flex-col z-30 overflow-hidden shrink-0"
+      >
+        {/* Admin Header */}
+        <div className={`p-4 border-b border-slate-800/60 ${sidebarCollapsed ? 'items-center flex flex-col' : ''}`}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30 shrink-0">
+              👑
+            </div>
+            {!sidebarCollapsed && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <p className="text-white font-bold text-sm leading-tight">Admin Panel</p>
+                <p className="text-[10px] text-slate-400 font-mono truncate">{currentUser?.email || 'admin'}</p>
+              </motion.div>
+            )}
           </div>
-          <h1 className="text-3xl font-display font-extrabold text-slate-900 mt-2 tracking-tight">
-            Invigo Portal Control Center
-          </h1>
-          <p className="text-xs text-slate-550 mt-1.5 font-sans leading-relaxed">
-            Verify tuition ledger statements, evaluate project completion checkpoints, issue cryptographically secure completion certificates, and administer user access nodes instantly.
-          </p>
+          {!sidebarCollapsed && (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[9px] text-emerald-400 font-mono font-bold uppercase tracking-wider">System Online</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex gap-2.5">
-          <button
-            onClick={() => setTrafficCount(prev => prev + Math.floor(Math.random() * 30 + 10))}
-            className="p-3 bg-white hover:bg-slate-50 border border-slate-220 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
-          >
-            <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
-            <span>Poll Metrics</span>
-          </button>
-          
-          <button
-            onClick={() => setCurrentTab('home')}
-            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer active:scale-95"
-          >
-            Exit Control Panel
-          </button>
-        </div>
-      </div>
-
-      {/* METRIC CARD BAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="rounded-3xl bg-white border border-slate-205 p-6 hover:shadow-lg transition-all space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">Total Registrations</span>
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-3xl font-mono font-extrabold text-slate-900">{totalStudents}</h3>
-            <span className="text-[10px] text-slate-450 block mt-1">✓ Logged securely on Firestore</span>
-          </div>
-        </div>
-
-        <div className="rounded-3xl bg-white border border-slate-205 p-6 hover:shadow-lg transition-all space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-slate-505 font-bold uppercase tracking-wider font-mono">Tunable Base Revenue</span>
-            <div className="p-2.5 bg-emerald-550/10 text-emerald-600 rounded-xl bg-emerald-50">
-              <CreditCard className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-3xl font-mono font-extrabold text-emerald-600">₹{totalVerifiedRevenue.toLocaleString()}</h3>
-            <span className="text-[10px] text-slate-450 block mt-1">Calculated as verified ₹1,999 collections</span>
-          </div>
-        </div>
-
-        <div className="rounded-3xl bg-white border border-slate-205 p-6 hover:shadow-lg transition-all space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">Tuition Verification Pending</span>
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-              <Activity className="h-5 w-5 animate-pulse" />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-3xl font-mono font-extrabold text-amber-655 text-amber-500">{pendingVerificationCount}</h3>
-            <span className="text-[10px] text-slate-450 block mt-1">Requires manual transaction audit</span>
-          </div>
-        </div>
-
-        <div className="rounded-3xl bg-white border border-slate-205 p-6 hover:shadow-lg transition-all space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-slate-505 font-bold uppercase tracking-wider font-mono">Active Verification Sites</span>
-            <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
-              <Award className="h-5 w-5" />
-            </div>
-          </div>
-          <div>
-            <h3 className="text-3xl font-mono font-extrabold text-slate-900">{certifiedCount}</h3>
-            <span className="text-[10px] text-slate-450 block mt-1">Public verified credential keys</span>
-          </div>
-        </div>
-      </div>
-
-      {/* DUAL COLUMN METRICS GRAPH & REVENUE TREND */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Dynamic Metric graph visualization */}
-        <div className="lg:col-span-2 rounded-[2.2rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <BarChart3 className="h-4.5 w-4.5 text-blue-600" />
-                <span>Interactions Trend analysis & Domain distribution</span>
-              </h3>
-              <p className="text-[10px] text-slate-500 mt-1">Interactive platform traffic metrics relative to enrolled domain pathways</p>
-            </div>
-            <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Live feed node</span>
-          </div>
-
-          <div className="space-y-4">
-            {/* Custom Responsive SVG visual columns */}
-            <div className="h-48 w-full bg-slate-50 rounded-2xl border border-slate-150 p-4 flex flex-col justify-between">
-              <div className="flex items-end justify-between h-36 gap-2 pt-4">
-                {/* Visual columns simulated */}
-                {[
-                  { domain: 'AI / ML Web Engine', trainees: allEnrollments.filter(e => e.domainId==='ai_ml').length, color: 'bg-blue-600', pct: 40 },
-                  { domain: 'Full-Stack Web Dev', trainees: allEnrollments.filter(e => e.domainId==='web_dev' || e.domainId==='fullstack').length, color: 'bg-cyan-500', pct: 75 },
-                  { domain: 'Cyber Security Scans', trainees: allEnrollments.filter(e => e.domainId==='cybersec').length, color: 'bg-amber-500', pct: 25 },
-                  { domain: 'Enterprise Marketing', trainees: allEnrollments.filter(e => e.domainId==='mba_management' || e.domainId==='marketing').length, color: 'bg-purple-500', pct: 55 },
-                  { domain: 'Other Specializations', trainees: allEnrollments.filter(e => !['ai_ml', 'web_dev', 'fullstack', 'cybersec', 'mba_management', 'marketing'].includes(e.domainId)).length, color: 'bg-slate-400', pct: 15 }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                    <div className="absolute -top-6 bg-slate-900 text-white font-mono text-[9px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                      {item.trainees} enrollments
-                    </div>
-                    {/* Simulated height according to trainees percentage */}
-                    <div 
-                      className={`w-full ${item.color} rounded-t-lg transition-all duration-1000`} 
-                      style={{ height: `${Math.max(10, (item.trainees / (totalStudents || 1)) * 100)}%` }} 
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-200">
-                <span>AI / ML</span>
-                <span>Fullstack</span>
-                <span>Cybersecurity</span>
-                <span>Marketing</span>
-                <span>Others</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-150 text-center">
-                <span className="text-[9px] text-slate-450 block uppercase font-mono font-bold">Daily Traffic</span>
-                <p className="text-base font-bold font-mono text-slate-800 mt-1">{trafficCount} active hits</p>
-              </div>
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-150 text-center">
-                <span className="text-[9px] text-slate-450 block uppercase font-mono font-bold">Pending Clearance</span>
-                <p className="text-base font-bold font-mono text-amber-600 mt-1">{pendingVerificationCount} profiles</p>
-              </div>
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-150 text-center">
-                <span className="text-[9px] text-slate-450 block uppercase font-mono font-bold">Successful Certs</span>
-                <p className="text-base font-bold font-mono text-emerald-600 mt-1">{certifiedCount} releases</p>
-              </div>
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-150 text-center">
-                <span className="text-[9px] text-slate-450 block uppercase font-mono font-bold">Total Collection</span>
-                <p className="text-base font-bold font-mono text-blue-600 mt-1">₹{(totalStudents * 1999).toLocaleString()}</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* RECENT ACTIONS live ticker Feed */}
-        <div className="rounded-[2.2rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-5 shadow-xs flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex justify-between items-center">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  <Activity className="h-4.5 w-4.5 text-blue-600" />
-                  <span>Real-Time Logs Feed</span>
-                </h3>
-                <p className="text-[9px] text-slate-500">Live operational events audit log</p>
-              </div>
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-mono text-[8px] uppercase font-bold animate-pulse">● FEED INSTANT</span>
-            </div>
-
-            <div className="space-y-3.5 overflow-y-auto max-h-64 pr-1">
-              {logs.length === 0 ? (
-                <div className="text-center py-6 text-slate-400 text-xs">No administrative actions logged yet in this session.</div>
-              ) : (
-                logs.map((log) => (
-                  <div key={log.id} className="text-xs border-b border-slate-100 pb-2.5 last:border-0 relative">
-                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                      <span>{log.timestamp}</span>
-                      <span className="font-bold text-blue-600">{log.admin.split('@')[0]}</span>
-                    </div>
-                    <p className="text-slate-700 font-medium mt-1 leading-relaxed">
-                      {log.action}
-                    </p>
-                    <div className="flex gap-1.5 mt-1">
-                      <span className={`text-[8.5px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
-                        log.type === 'payment' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                        log.type === 'certificate' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                        log.type === 'setting' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                        'bg-slate-50 text-slate-750 border border-slate-200'
-                      }`}>
-                        {log.type}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 text-center">
-            <button
-              onClick={() => {
-                setLogs([]);
-                addLog('Cleared session telemetry logs', 'user');
-              }}
-              className="text-[10px] text-red-500 font-bold hover:underline"
-            >
-              Flush Live Stream Logs
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* CORE USER REGISTRATIONS MANAGER PANEL */}
-      <div className="rounded-[2.2rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm">
-        
-        {/* Table Filter Topbar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              <span>Trainee Registrations (Interactive HTML table)</span>
-            </h3>
-            <p className="text-xs text-slate-550">Filter database, update profiles, verify deposits, and release digital credentials.</p>
-          </div>
-          
-          <div className="flex flex-wrap gap-2.5 w-full md:w-auto">
-            <button
-              onClick={handleBulkVerifyPayments}
-              disabled={selectedIds.length === 0}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                selectedIds.length > 0 
-                  ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-105 active:scale-95 shadow-xs' 
-                  : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <CheckSquare className="h-3.5 w-3.5" />
-              <span>Bulk Verify ({selectedIds.length})</span>
-            </button>
-
-            <button
-              onClick={handleBulkIssueCertificates}
-              disabled={selectedIds.length === 0}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                selectedIds.length > 0 
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-105 active:scale-95 shadow-xs' 
-                  : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <Award className="h-3.5 w-3.5" />
-              <span>Bulk issue Certs</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Input parameters search bars */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-150">
-          <div className="relative group md:col-span-2">
-            <Search className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search Candidate ID, trainee name, email, or college..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-slate-220 rounded-xl py-2 px-10 text-xs font-medium focus:ring-2 focus:ring-blue-150 focus:border-blue-500 outline-none transition-all shadow-xs"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block font-mono">Domain</span>
-            <select
-              value={domainFilter}
-              onChange={(e) => setDomainFilter(e.target.value)}
-              className="flex-1 bg-white border border-slate-220 rounded-xl py-2 px-3 text-xs focus:ring-2 focus:ring-blue-150 outline-none shadow-xs"
-            >
-              <option value="All">All Disciplines</option>
-              <option value="ai_ml">Artificial Intelligence</option>
-              <option value="web_dev">Web Development</option>
-              <option value="cybersec">Cyber Security</option>
-              <option value="mba_management">MBA & Management</option>
-              <option value="vlsi">VLSI Hardware</option>
-              <option value="iot_embedded">IoT & Embedded Systems</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block font-mono">Billing</span>
-            <select
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-              className="flex-1 bg-white border border-slate-220 rounded-xl py-2 px-3 text-xs focus:ring-2 focus:ring-blue-150 outline-none shadow-xs"
-            >
-              <option value="All">All Payment States</option>
-              <option value="Verified">Verified Deposits Only</option>
-              <option value="Pending">Unverified Pending Only</option>
-            </select>
-          </div>
-        </div>
-
-        {/* MAIN DYNAMIC HTML TABLE */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-xs text-slate-705">
-            <thead className="bg-slate-50/70 font-bold uppercase tracking-wider text-[10px] text-slate-500 font-mono">
-              <tr>
-                <th className="py-3 px-4 w-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.length > 0 && selectedIds.length === filteredEnrollments.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedIds(filteredEnrollments.map(item => item.candidateId));
-                      } else {
-                        setSelectedIds([]);
-                      }
-                    }}
-                    className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                  />
-                </th>
-                <th className="py-3 px-4">Candidate & Path</th>
-                <th className="py-3 px-4">College, Year & Degree</th>
-                <th className="py-3 px-4">Billing Status</th>
-                <th className="py-3 px-4">Timeline / Completion</th>
-                <th className="py-3 px-4">Credential Status</th>
-                <th className="py-3 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white font-medium">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-450">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600"></div>
-                      <span className="font-semibold text-xs text-slate-500">Querying real-time Firestore database...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredEnrollments.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No registrations found matching the specified filter criteria. Try broader search terms.
-                  </td>
-                </tr>
-              ) : (
-                filteredEnrollments.map((enr) => {
-                  const isChecked = selectedIds.includes(enr.candidateId);
-                  
-                  // Simple logic to evaluate course duration:
-                  // Let's assume start date is weeks ago. Under simulator mode or normal use we track if they completed weekly milestones.
-                  // Since we have local state or standard 100% course completions, let's look at isCompilingCert / completed state.
-                  // We can display a helpful visual cue "DOM COMPLETED" if they completed all goals or are simulated.
-                  const durationCompletedIndicator = true; // Set helper tag
-
-                  return (
-                    <tr 
-                      key={enr.candidateId} 
-                      className={`hover:bg-slate-50/50 transition-all ${isChecked ? 'bg-blue-50/15' : ''} ${enr.blocked ? 'opacity-65 bg-red-50/5' : ''}`}
-                    >
-                      <td className="py-4 px-4">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedIds(prev => [...prev, enr.candidateId]);
-                            } else {
-                              setSelectedIds(prev => prev.filter(id => id !== enr.candidateId));
-                            }
-                          }}
-                          className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                        />
-                      </td>
-                      
-                      <td className="py-4 px-4 space-y-1 max-w-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 text-[13px]">{enr.fullName}</span>
-                          {enr.blocked && (
-                            <span className="px-1.5 py-0.2 rounded-sm bg-red-500 text-white font-bold text-[8px] uppercase tracking-wide">
-                              Blocked
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-450 font-mono flex items-center gap-1">
-                          <span className="text-blue-600 font-bold">{enr.candidateId}</span>
-                          <span>•</span>
-                          <span>{enr.email}</span>
-                        </div>
-                        <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-blue-550 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                          {enr.domainId}
-                        </span>
-                      </td>
-
-                      <td className="py-4 px-4 space-y-1">
-                        <div className="font-semibold text-slate-800 leading-tight">{enr.collegeName || 'Not specified'}</div>
-                        <div className="text-[10px] text-slate-500">
-                          {enr.degree || 'Degree'} — Field: {enr.fieldOfStudy || 'General'}
-                        </div>
-                        <div className="text-[9.5px] text-slate-450 font-mono font-bold">
-                          Year: {enr.currentYear || 'Unknown'} (Passing {enr.passingYear || '-'})
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        {enr.paymentVerified ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                            <Check className="h-3 w-3 text-emerald-600" />
-                            <span>Deposit Verified</span>
-                          </span>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full animate-pulse">
-                              <X className="h-2.5 w-2.5 text-amber-550" />
-                              <span>Tuition Checked (Pending)</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleVerifyPayment(enr)}
-                              className="block px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[9.5px] font-bold transition-all shadow-xs cursor-pointer"
-                            >
-                              ✓ Verify billing
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-4 space-y-1 text-slate-600">
-                        <div className="flex items-center gap-1 text-[10.5px]">
-                          <span className="font-bold text-slate-700">Duration:</span>
-                          <span className="font-mono font-bold text-slate-800">{enr.durationWeeks} Weeks</span>
-                        </div>
-                        <div className="text-[10px] text-slate-450">
-                          Start Date: {enr.startDate || 'N/A'}
-                        </div>
-                        <div className="flex items-center gap-1.5 pt-0.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          <span className="text-[9.5px] font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded uppercase">
-                            Duration Completed
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        {enr.certificateIssued ? (
-                          <div className="space-y-1.5">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-750 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full text-indigo-700">
-                              <Shield className="h-3 w-3 text-indigo-650" />
-                              <span>Issued ✓</span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => downloadCertificatePDF(enr, enr.domainId === 'ai_ml' ? 'Artificial Intelligence Intern' : 'Technology Consulting Specialist')}
-                              className="block text-[9.5px] font-bold text-indigo-600 hover:underline hover:text-indigo-800 cursor-pointer"
-                            >
-                              📄 Download PDF check
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <span className="inline-flex items-center gap-0.5 text-[9.5px] text-slate-500 bg-slate-50 border border-slate-200 py-1 px-2.5 rounded-full font-mono">
-                              Pending release trigger
-                            </span>
-                            
-                            <button
-                              type="button"
-                              onClick={() => handleIssueCertificate(enr)}
-                              className="block w-full text-center px-2.5 py-1.5 rounded-lg border border-transparent bg-blue-600 hover:bg-blue-700 text-white text-[9.5px] font-bold tracking-wide active:scale-95 transition-all shadow-sm cursor-pointer"
-                            >
-                              🎓 Release Certificate
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-4">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            title="Edit details"
-                            onClick={() => {
-                              setEditingEnrollment(enr);
-                              setEditName(enr.fullName);
-                              setEditCollege(enr.collegeName || '');
-                              setEditDegree(enr.degree || 'B.Tech');
-                              setEditDuration(enr.durationWeeks);
-                            }}
-                            className="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-all cursor-pointer"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                          </button>
-
-                          <button
-                            title={enr.blocked ? 'Unlock student' : 'Suspend student account'}
-                            onClick={() => handleToggleBlockUser(enr)}
-                            className={`p-1.5 rounded transition-all cursor-pointer ${
-                              enr.blocked 
-                                ? 'bg-red-550/10 text-red-650 hover:bg-red-200 bg-red-50 text-red-600' 
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-500'
-                            }`}
-                          >
-                            {enr.blocked ? (
-                              <ShieldOff className="h-3.5 w-3.5" />
-                            ) : (
-                              <Shield className="h-3.5 w-3.5 text-slate-400 hover:text-slate-705" />
-                            )}
-                          </button>
-
-                          <button
-                            title="Exterminate enrollment"
-                            onClick={() => handleDeleteEnrollment(enr.candidateId, enr.fullName)}
-                            className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600 transition-all cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* LOWER GRID: SETTINGS, COMMUNICATION & EMERGENCY TRIGGER PANEL */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Dynamic Global Settings */}
-        <div className="rounded-[2.2rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <Settings2 className="h-4.5 w-4.5 text-blue-600" />
-              <span>Dynamic Portal Rules & Maintenance</span>
-            </h3>
-            <p className="text-xs text-slate-550">Adjust configurations instantly without altering code files.</p>
-          </div>
-
-          <div className="space-y-4 font-sans text-xs">
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 block">Global Portal Display Name</label>
-              <input
-                type="text"
-                value={settings.portalName}
-                onChange={(e) => setSettings({ ...settings, portalName: e.target.value })}
-                className="w-full bg-white border border-slate-220 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-150 transition-all"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 block">Urgent Support Contact Hotline</label>
-              <input
-                type="text"
-                value={settings.supportPhone}
-                onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
-                className="w-full bg-white border border-slate-220 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-150 transition-all"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 block">Dashboard Banner Announcement Alert</label>
-              <textarea
-                value={settings.announcementText}
-                onChange={(e) => setSettings({ ...settings, announcementText: e.target.value })}
-                rows={2}
-                className="w-full bg-white border border-slate-220 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-150 transition-all leading-relaxed"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
-              <div>
-                <span className="font-bold text-slate-800 block">Cybersecurity Maintenance Mode</span>
-                <p className="text-[10px] text-slate-500 mt-0.5">Locks down client registrations temporarily.</p>
-              </div>
+        {/* Nav Items */}
+        <nav className="flex-1 py-3 space-y-1 px-2 overflow-y-auto">
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
               <button
-                type="button"
-                onClick={() => setSettings({ ...settings, maintenanceMode: !settings.maintenanceMode })}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
-                  settings.maintenanceMode 
-                    ? 'bg-amber-100 border-amber-300 text-amber-800' 
-                    : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer group relative ${
+                  isActive
+                    ? 'bg-blue-600/20 text-blue-400 shadow-inner'
+                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
                 }`}
               >
-                {settings.maintenanceMode ? 'ACTIVE (LOCKED)' : 'INACTIVE'}
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full"
+                    transition={{ duration: 0.2 }}
+                  />
+                )}
+                <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                {!sidebarCollapsed && (
+                  <span className="flex-1 text-left">{item.label}</span>
+                )}
+                {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                    isActive ? 'bg-blue-500/30 text-blue-300' : 'bg-slate-700 text-slate-400'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Collapse Toggle */}
+        <div className="p-3 border-t border-slate-800/60">
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs text-slate-500 hover:bg-slate-800/60 hover:text-slate-300 transition-all cursor-pointer"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <><ChevronLeft className="h-4 w-4" /><span>Collapse</span></>}
+          </button>
+        </div>
+      </motion.aside>
+
+      {/* ══════════ MAIN CONTENT ══════════ */}
+      <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-8">
+
+          {/* Top Bar */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight font-display">
+                {navItems.find(n => n.id === activeSection)?.label || 'Dashboard'}
+              </h1>
+              <p className="text-xs text-slate-500 mt-1">
+                Invigo Infotech Control Center • {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setTrafficCount(prev => prev + Math.floor(Math.random() * 30 + 10))}
+                className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
+              >
+                <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
+                <span className="font-semibold hidden sm:inline">Refresh</span>
+              </button>
+              <button
+                onClick={() => setCurrentTab('home')}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer active:scale-95"
+              >
+                Exit Panel
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={handleSaveSettings}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all shadow-md active:scale-[0.98] cursor-pointer"
-            >
-              <Check className="h-4 w-4" />
-              <span>Hot-Save Global settings</span>
-            </button>
           </div>
-        </div>
 
-        {/* Global Student Announcement Center */}
-        <div className="rounded-[2.2rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs flex flex-col justify-between">
-          <div className="space-y-5">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <MessageSquare className="h-4.5 w-4.5 text-blue-600" />
-                <span>Broadcaster Announcement Release System</span>
-              </h3>
-              <p className="text-xs text-slate-550">Disseminate text banner guidelines or academic schedule shifts to portal headers.</p>
-            </div>
-
-            <div className="p-4 rounded-[1.5rem] border border-blue-200 bg-blue-50/20 space-y-3.5 text-xs text-slate-650">
-              <div className="flex items-start gap-2.5">
-                <div className="p-1 rounded bg-blue-100 text-blue-700 select-none font-bold">INFO</div>
-                <p className="leading-relaxed text-slate-650">
-                  By saving the global announcement message, you dynamically update the marquee ribbon displayed right across every student dashboard in real-time. Extremely useful for schedule notices or holiday lists!
-                </p>
+          {/* ═══════════════════════ DASHBOARD SECTION ═══════════════════════ */}
+          {activeSection === 'dashboard' && (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-8"
+            >
+              {/* Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { label: 'Total Registrations', value: totalStudents.toString(), icon: Users, color: 'blue', sub: 'Active users on platform' },
+                  { label: 'Verified Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: CreditCard, color: 'emerald', sub: `${verifiedPayments} payments confirmed` },
+                  { label: 'Pending Payments', value: pendingPayments.toString(), icon: Clock, color: 'amber', sub: 'Awaiting verification' },
+                  { label: 'Certificates Issued', value: certifiedCount.toString(), icon: Award, color: 'purple', sub: 'Credentials released' },
+                ].map((card, idx) => {
+                  const Icon = card.icon;
+                  const colorMap: Record<string, string> = {
+                    blue: 'from-blue-500/10 to-blue-600/5 border-blue-200/60',
+                    emerald: 'from-emerald-500/10 to-emerald-600/5 border-emerald-200/60',
+                    amber: 'from-amber-500/10 to-amber-600/5 border-amber-200/60',
+                    purple: 'from-purple-500/10 to-purple-600/5 border-purple-200/60',
+                  };
+                  const iconBg: Record<string, string> = {
+                    blue: 'bg-blue-100 text-blue-600',
+                    emerald: 'bg-emerald-100 text-emerald-600',
+                    amber: 'bg-amber-100 text-amber-600',
+                    purple: 'bg-purple-100 text-purple-600',
+                  };
+                  const valueColor: Record<string, string> = {
+                    blue: 'text-slate-900',
+                    emerald: 'text-emerald-600',
+                    amber: 'text-amber-600',
+                    purple: 'text-slate-900',
+                  };
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.08 }}
+                      className={`rounded-2xl bg-gradient-to-br ${colorMap[card.color]} border p-5 hover:shadow-lg transition-all duration-300`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">{card.label}</span>
+                        <div className={`p-2 rounded-xl ${iconBg[card.color]}`}>
+                          <Icon className="h-4.5 w-4.5" />
+                        </div>
+                      </div>
+                      <h3 className={`text-3xl font-mono font-extrabold mt-3 ${valueColor[card.color]}`}>{card.value}</h3>
+                      <span className="text-[10px] text-slate-450 block mt-1">{card.sub}</span>
+                    </motion.div>
+                  );
+                })}
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl border border-dashed border-slate-300 space-y-2.5 bg-slate-50/50">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block font-mono">Real-Time Mock Preview Ribbon</span>
-                <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold p-3 rounded-lg flex items-center gap-2 animate-pulse">
-                  <span className="shrink-0 animate-ping h-2 w-2 rounded-full bg-red-650 inline-block" />
-                  <span>{settings.announcementText || 'No current dynamic announcements released.'}</span>
+              {/* Charts Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* Bar Chart - Domain Distribution */}
+                <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <BarChart3 className="h-4 w-4 text-blue-600" />
+                        <span>Enrollment Distribution by Domain</span>
+                      </h3>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Real-time Firestore data</p>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">LIVE</span>
+                  </div>
+
+                  {domainDistribution.length > 0 ? (
+                    <div className="space-y-3">
+                      {domainDistribution.map(([domain, count], idx) => {
+                        const barColors = ['bg-blue-500', 'bg-cyan-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                        return (
+                          <div key={domain} className="group">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="font-semibold text-slate-700 truncate max-w-[200px]">{domain}</span>
+                              <span className="font-mono font-bold text-slate-500">{count}</span>
+                            </div>
+                            <div className="h-7 bg-slate-100 rounded-lg overflow-hidden relative">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(count / maxDomainCount) * 100}%` }}
+                                transition={{ duration: 0.8, delay: idx * 0.1, ease: 'easeOut' }}
+                                className={`h-full ${barColors[idx % barColors.length]} rounded-lg relative`}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400 text-xs">No enrollment data yet</div>
+                  )}
+                </div>
+
+                {/* Pie Chart - Payment Status */}
+                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mb-6">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <span>Payment Status</span>
+                  </h3>
+
+                  {/* SVG Donut Chart */}
+                  <div className="flex justify-center mb-6">
+                    <svg width="160" height="160" viewBox="0 0 160 160">
+                      <circle cx="80" cy="80" r="60" fill="none" stroke="#f1f5f9" strokeWidth="20" />
+                      {totalStudents > 0 && (
+                        <>
+                          <circle
+                            cx="80" cy="80" r="60" fill="none"
+                            stroke="#10b981"
+                            strokeWidth="20"
+                            strokeDasharray={`${(verifiedPayments / totalStudents) * 377} 377`}
+                            strokeDashoffset="0"
+                            transform="rotate(-90 80 80)"
+                            className="transition-all duration-1000"
+                          />
+                          <circle
+                            cx="80" cy="80" r="60" fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="20"
+                            strokeDasharray={`${(pendingPayments / totalStudents) * 377} 377`}
+                            strokeDashoffset={`-${(verifiedPayments / totalStudents) * 377}`}
+                            transform="rotate(-90 80 80)"
+                            className="transition-all duration-1000"
+                          />
+                        </>
+                      )}
+                      <text x="80" y="76" textAnchor="middle" className="fill-slate-900 text-2xl font-bold" style={{ fontSize: '24px', fontWeight: 800 }}>
+                        {totalStudents}
+                      </text>
+                      <text x="80" y="92" textAnchor="middle" className="fill-slate-400" style={{ fontSize: '10px' }}>
+                        Total
+                      </text>
+                    </svg>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-emerald-500" />
+                        <span className="text-slate-600 font-medium">Verified</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-800">{verifiedPayments}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-amber-500" />
+                        <span className="text-slate-600 font-medium">Pending</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-800">{pendingPayments}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-red-500" />
+                        <span className="text-slate-600 font-medium">Blocked</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-800">{blockedCount}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="mt-5 pt-4 border-t border-slate-100 space-y-2">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-500 font-mono uppercase font-bold">Daily Traffic</span>
+                      <span className="font-mono font-bold text-slate-700">{trafficCount}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-500 font-mono uppercase font-bold">System Errors</span>
+                      <span className="font-mono font-bold text-red-500">{activeErrors}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="pt-4 border-t border-slate-200 flex justify-between items-center text-xs">
-            <span className="text-slate-400">Target Segment: <strong>All Enrolled Students (Global)</strong></span>
-            <button
-              onClick={() => {
-                setSettings({ ...settings, announcementText: '🚨 Welcome to Invigo Infotech! New orientation slides have been hot-pushed to the dashboard files section!' });
-                alert('Default announcement initialized. Click "Hot-Save Global Settings" to save to disk.');
-              }}
-              className="text-blue-600 hover:underline font-bold"
+              {/* Recent Activity Feed */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <Activity className="h-4 w-4 text-blue-600" />
+                    <span>Recent Activity Feed</span>
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-mono text-[8px] uppercase font-bold flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE
+                  </span>
+                </div>
+                <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                  {logs.slice(0, 8).map(log => (
+                    <div key={log.id} className="flex items-start gap-3 text-xs border-b border-slate-50 pb-2.5 last:border-0">
+                      <div className={`mt-0.5 p-1 rounded-md shrink-0 ${
+                        log.type === 'payment' ? 'bg-amber-100 text-amber-600' :
+                        log.type === 'certificate' ? 'bg-emerald-100 text-emerald-600' :
+                        log.type === 'setting' ? 'bg-purple-100 text-purple-600' :
+                        log.type === 'error' ? 'bg-red-100 text-red-600' :
+                        log.type === 'communication' ? 'bg-blue-100 text-blue-600' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {log.type === 'payment' ? <CreditCard className="h-3 w-3" /> :
+                         log.type === 'certificate' ? <Award className="h-3 w-3" /> :
+                         log.type === 'setting' ? <Settings2 className="h-3 w-3" /> :
+                         log.type === 'error' ? <AlertTriangle className="h-3 w-3" /> :
+                         log.type === 'communication' ? <Mail className="h-3 w-3" /> :
+                         <Users className="h-3 w-3" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-slate-700 font-medium leading-snug">{log.action}</p>
+                        <span className="text-[10px] text-slate-400 font-mono">{log.timestamp} • {log.admin.split('@')[0]}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ USERS SECTION ═══════════════════════ */}
+          {activeSection === 'users' && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
             >
-              Populate Template Info
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* EDITING USER PROFILE MODAL INLINE COMPONENT */}
-      {editingEnrollment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-[2.5rem] p-6 sm:p-8 space-y-6 shadow-2xl relative border border-slate-100">
-            <button
-              onClick={() => setEditingEnrollment(null)}
-              className="absolute right-5 top-5 p-2 rounded-full hover:bg-slate-100 transition-all cursor-pointer"
-            >
-              <X className="h-5 w-5 text-slate-400" />
-            </button>
-
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Edit Trainee Information</h3>
-              <p className="text-[11px] text-slate-500">Candidate ID Reference: <strong className="font-mono text-blue-600">{editingEnrollment.candidateId}</strong></p>
-            </div>
-
-            <div className="space-y-4 text-xs font-sans">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Student Full Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-150 outline-none"
-                />
+              {/* Bulk Action Bar */}
+              <div className="flex flex-wrap gap-2.5">
+                <button
+                  onClick={() => setShowEnrollModal(true)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer bg-blue-600 border-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md shadow-blue-500/20"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  Enroll Student
+                </button>
+                <div className="w-px h-6 bg-slate-200 self-center mx-1" />
+                <button
+                  onClick={handleBulkVerifyPayments}
+                  disabled={selectedIds.length === 0}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                    selectedIds.length > 0
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 active:scale-95 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Bulk Verify ({selectedIds.length})
+                </button>
+                <button
+                  onClick={handleBulkIssueCertificates}
+                  disabled={selectedIds.length === 0}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                    selectedIds.length > 0
+                      ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 active:scale-95 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Award className="h-3.5 w-3.5" />
+                  Bulk Issue Certs
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.length === 0}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                    selectedIds.length > 0
+                      ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100 active:scale-95 shadow-sm'
+                      : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Bulk Delete
+                </button>
+                {selectedIds.length > 0 && (
+                  <span className="self-center text-[10px] text-slate-500 font-mono">{selectedIds.length} selected</span>
+                )}
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">University / College Name</label>
-                <input
-                  type="text"
-                  value={editCollege}
-                  onChange={(e) => setEditCollege(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-150 outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700 font-sans">Registered Degree Code</label>
+              {/* Search & Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="relative md:col-span-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    value={editDegree}
-                    onChange={(e) => setEditDegree(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-150 outline-none"
+                    placeholder="Search name, email, ID, college..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none transition-all shadow-sm"
                   />
                 </div>
+                <select
+                  value={domainFilter}
+                  onChange={(e) => setDomainFilter(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
+                >
+                  <option value="All">All Domains</option>
+                  {INTERNSHIP_DOMAINS.map(d => (
+                    <option key={d.id} value={d.id}>{d.title}</option>
+                  ))}
+                </select>
+                <select
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
+                >
+                  <option value="All">All Payments</option>
+                  <option value="Verified">Verified Only</option>
+                  <option value="Pending">Pending Only</option>
+                </select>
+                <select
+                  value={certFilter}
+                  onChange={(e) => setCertFilter(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
+                >
+                  <option value="All">All Certificates</option>
+                  <option value="Issued">Issued</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700 font-sans">Duration (Weeks)</label>
-                  <select
-                    value={editDuration}
-                    onChange={(e) => setEditDuration(Number(e.target.value))}
-                    className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-150 outline-none"
+              {/* User Table */}
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm bg-white">
+                <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                  <thead className="bg-slate-50/80 font-bold uppercase tracking-wider text-[10px] text-slate-500 font-mono">
+                    <tr>
+                      <th className="py-3 px-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length > 0 && selectedIds.length === filteredEnrollments.length}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedIds(filteredEnrollments.map(i => i.candidateId));
+                            else setSelectedIds([]);
+                          }}
+                          className="h-4 w-4 rounded text-blue-600 border-slate-300 cursor-pointer"
+                        />
+                      </th>
+                      <th className="py-3 px-4 cursor-pointer select-none" onClick={() => handleSort('fullName')}>
+                        <div className="flex items-center gap-1">Candidate <SortIcon field="fullName" /></div>
+                      </th>
+                      <th className="py-3 px-4">College & Degree</th>
+                      <th className="py-3 px-4">Payment</th>
+                      <th className="py-3 px-4 cursor-pointer select-none" onClick={() => handleSort('durationWeeks')}>
+                        <div className="flex items-center gap-1">Progress <SortIcon field="durationWeeks" /></div>
+                      </th>
+                      <th className="py-3 px-4">Certificate</th>
+                      <th className="py-3 px-4 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white font-medium">
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={7} className="py-16 text-center text-slate-400">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+                            <span className="font-semibold text-xs">Querying Firestore...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredEnrollments.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-16 text-center text-slate-400 text-xs">
+                          No registrations found. Try broader search terms.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEnrollments.map((enr) => {
+                        const isChecked = selectedIds.includes(enr.candidateId);
+                        const durationDone = isDurationComplete(enr.startDate, enr.durationWeeks);
+                        const remaining = getDaysRemaining(enr.startDate, enr.durationWeeks);
+                        const pct = getCompletionPct(enr.startDate, enr.durationWeeks);
+
+                        return (
+                          <tr
+                            key={enr.candidateId}
+                            className={`hover:bg-slate-50/50 transition-all ${isChecked ? 'bg-blue-50/30' : ''} ${enr.blocked ? 'opacity-60 bg-red-50/20' : ''}`}
+                          >
+                            <td className="py-3.5 px-4">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedIds(prev => [...prev, enr.candidateId]);
+                                  else setSelectedIds(prev => prev.filter(id => id !== enr.candidateId));
+                                }}
+                                className="h-4 w-4 rounded text-blue-600 border-slate-300 cursor-pointer"
+                              />
+                            </td>
+
+                            {/* Candidate */}
+                            <td className="py-3.5 px-4 space-y-1 max-w-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-900 text-[13px]">{enr.fullName}</span>
+                                {enr.blocked && (
+                                  <span className="px-1.5 py-0.5 rounded bg-red-500 text-white font-bold text-[7px] uppercase">Blocked</span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono">
+                                <span className="text-blue-600 font-bold">{enr.candidateId}</span>
+                                <span className="mx-1">•</span>
+                                <span>{enr.email}</span>
+                              </div>
+                              <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                                {getDomainTitle(enr.domainId)}
+                              </span>
+                            </td>
+
+                            {/* College */}
+                            <td className="py-3.5 px-4 space-y-0.5">
+                              <div className="font-semibold text-slate-800 leading-tight text-[11px]">{enr.collegeName || 'Not specified'}</div>
+                              <div className="text-[10px] text-slate-500">{enr.degree || 'Degree'} — {enr.fieldOfStudy || 'General'}</div>
+                              <div className="text-[9.5px] text-slate-400 font-mono">Year: {enr.currentYear || '?'} (Pass: {enr.passingYear || '-'})</div>
+                            </td>
+
+                            {/* Payment */}
+                            <td className="py-3.5 px-4">
+                              {enr.paymentVerified ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                                  <Check className="h-3 w-3" />
+                                  Verified
+                                </span>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    Pending
+                                  </span>
+                                  <button
+                                    onClick={() => handleVerifyPayment(enr)}
+                                    className="block px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                                  >
+                                    ✓ Verify Payment
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Progress */}
+                            <td className="py-3.5 px-4 space-y-1.5">
+                              <div className="text-[10.5px] font-mono">
+                                <span className="font-bold text-slate-700">{enr.durationWeeks}W</span>
+                                <span className="text-slate-400 mx-1">from</span>
+                                <span className="text-slate-600">{enr.startDate || 'N/A'}</span>
+                              </div>
+                              {enr.startDate && (
+                                <>
+                                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ${durationDone ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  {durationDone ? (
+                                    <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">
+                                      <CheckCircle className="h-2.5 w-2.5" /> Completed
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-mono text-slate-500">{remaining}d remaining • {pct}%</span>
+                                  )}
+                                </>
+                              )}
+                            </td>
+
+                            {/* Certificate */}
+                            <td className="py-3.5 px-4">
+                              {enr.certificateIssued ? (
+                                <div className="space-y-1.5">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
+                                    <Shield className="h-3 w-3" />
+                                    Issued ✓
+                                  </span>
+                                  <button
+                                    onClick={() => downloadCertificatePDF(enr, getDomainTitle(enr.domainId))}
+                                    className="flex items-center gap-1 text-[9px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                                  >
+                                    <Download className="h-3 w-3" /> Download PDF
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {!enr.paymentVerified ? (
+                                    <span className="text-[9px] text-slate-400 font-mono italic">Verify payment first</span>
+                                  ) : !durationDone ? (
+                                    <span className="text-[9px] text-slate-400 font-mono italic">Duration in progress...</span>
+                                  ) : (
+                                    <>
+                                      <span className="block text-[9px] text-emerald-600 font-bold">✓ Eligible for certificate</span>
+                                      <div className="flex gap-1">
+                                        <button
+                                          onClick={() => handleIssueCertificate(enr)}
+                                          className="flex-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold active:scale-95 transition-all shadow-sm cursor-pointer"
+                                        >
+                                          Issue
+                                        </button>
+                                        <button
+                                          title="Custom Date"
+                                          onClick={() => setCertDateFor(enr)}
+                                          className="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 active:scale-95 transition-all cursor-pointer"
+                                        >
+                                          <Calendar className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  title="Edit"
+                                  onClick={() => {
+                                    setEditingEnrollment(enr);
+                                    setEditName(enr.fullName);
+                                    setEditCollege(enr.collegeName || '');
+                                    setEditDegree(enr.degree || 'B.Tech');
+                                    setEditDuration(enr.durationWeeks);
+                                    setEditPhone(enr.phone || '');
+                                    setEditFieldOfStudy(enr.fieldOfStudy || '');
+                                    setEditStartDate(enr.startDate || '');
+                                  }}
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all cursor-pointer"
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  title="Change Domain"
+                                  onClick={() => { setChangingDomainFor(enr); setNewDomainId(enr.domainId); }}
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all cursor-pointer"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  title={enr.blocked ? 'Unblock' : 'Block'}
+                                  onClick={() => handleToggleBlockUser(enr)}
+                                  className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                                    enr.blocked ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {enr.blocked ? <ShieldOff className="h-3.5 w-3.5" /> : <Shield className="h-3.5 w-3.5" />}
+                                </button>
+                                <button
+                                  title="Delete"
+                                  onClick={() => handleDeleteEnrollment(enr.candidateId, enr.fullName)}
+                                  className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-all cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-xs text-slate-400 text-center font-mono">
+                Showing {filteredEnrollments.length} of {totalStudents} total records
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ CERTIFICATES SECTION ═══════════════════════ */}
+          {activeSection === 'certificates' && (
+            <motion.div
+              key="certificates"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              {/* Stats Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">Issued</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-emerald-600 mt-2">{certifiedCount}</h3>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">Eligible (Not Issued)</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-blue-600 mt-2">
+                    {allEnrollments.filter(e => !e.certificateIssued && e.paymentVerified && isDurationComplete(e.startDate, e.durationWeeks)).length}
+                  </h3>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">In Progress</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-amber-600 mt-2">
+                    {allEnrollments.filter(e => !isDurationComplete(e.startDate, e.durationWeeks) && e.paymentVerified).length}
+                  </h3>
+                </div>
+              </div>
+
+              {/* Eligible for Certificate */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-blue-600" />
+                  Certificate Management
+                </h3>
+
+                {/* Bulk action */}
+                {(() => {
+                  const eligible = allEnrollments.filter(e => !e.certificateIssued && e.paymentVerified && isDurationComplete(e.startDate, e.durationWeeks));
+                  if (eligible.length > 0) {
+                    return (
+                      <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between">
+                        <span className="text-xs text-blue-700 font-semibold">{eligible.length} students eligible for certificate issuance</span>
+                        <button
+                          onClick={async () => {
+                            let count = 0;
+                            for (const e of eligible) {
+                              try {
+                                await updateDoc(doc(db, 'enrollments', e.candidateId), {
+                                  certificateIssued: true,
+                                  certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                                  status: 'Completed'
+                                });
+                                count++;
+                              } catch (err) { /* skip */ }
+                            }
+                            addLog(`Bulk issued ${count} certificates from certificate panel`, 'certificate');
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer active:scale-95 transition-all"
+                        >
+                          Issue All ({eligible.length})
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <div className="space-y-2.5">
+                  {allEnrollments.map(enr => {
+                    const durationDone = isDurationComplete(enr.startDate, enr.durationWeeks);
+                    const pct = getCompletionPct(enr.startDate, enr.durationWeeks);
+                    return (
+                      <div key={enr.candidateId} className="flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition-all">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-slate-900">{enr.fullName}</span>
+                            <span className="text-[9px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{enr.candidateId}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{getDomainTitle(enr.domainId)} • {enr.durationWeeks} weeks • {enr.startDate || 'No start date'}</div>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="w-20">
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${durationDone ? 'bg-emerald-500' : 'bg-blue-400'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-mono">{pct}%</span>
+                        </div>
+
+                        {/* Status Badges */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!enr.paymentVerified && (
+                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Payment Pending</span>
+                          )}
+                          {enr.paymentVerified && !durationDone && (
+                            <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">In Progress</span>
+                          )}
+                          {enr.certificateIssued ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Issued ✓</span>
+                              <button
+                                onClick={() => downloadCertificatePDF(enr, getDomainTitle(enr.domainId))}
+                                className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 cursor-pointer transition-all"
+                                title="Download PDF"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            enr.paymentVerified && durationDone && (
+                              <button
+                                onClick={() => handleIssueCertificate(enr)}
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-lg cursor-pointer active:scale-95 transition-all"
+                              >
+                                🎓 Issue
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ SETTINGS SECTION ═══════════════════════ */}
+          {activeSection === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Portal Settings */}
+                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <Settings2 className="h-4 w-4 text-blue-600" />
+                    Portal Configuration
+                  </h3>
+
+                  <div className="space-y-4 text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Portal Display Name</label>
+                      <input
+                        type="text"
+                        value={settings.portalName}
+                        onChange={(e) => setSettings({ ...settings, portalName: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Support Contact</label>
+                      <input
+                        type="text"
+                        value={settings.supportPhone}
+                        onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Theme Accent Color</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={settings.themeAccent}
+                          onChange={(e) => setSettings({ ...settings, themeAccent: e.target.value })}
+                          className="h-10 w-16 rounded-lg border border-slate-200 cursor-pointer"
+                        />
+                        <span className="text-slate-500 font-mono">{settings.themeAccent}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Announcement Banner</label>
+                      <textarea
+                        value={settings.announcementText}
+                        onChange={(e) => setSettings({ ...settings, announcementText: e.target.value })}
+                        rows={3}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div>
+                        <span className="font-bold text-slate-800 block">Maintenance Mode</span>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Locks down client registrations temporarily</p>
+                      </div>
+                      <button
+                        onClick={() => setSettings({ ...settings, maintenanceMode: !settings.maintenanceMode })}
+                        className={`relative w-12 h-6 rounded-full transition-all cursor-pointer ${
+                          settings.maintenanceMode ? 'bg-amber-500' : 'bg-slate-300'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                          settings.maintenanceMode ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleSaveSettings}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                    >
+                      <Check className="h-4 w-4" />
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <Eye className="h-4 w-4 text-blue-600" />
+                    Live Preview
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-3">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Announcement Banner Preview</span>
+                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold p-3 rounded-lg flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                        <span>{settings.announcementText || 'No announcement set'}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Maintenance Status</span>
+                      <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${
+                        settings.maintenanceMode
+                          ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                          : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                      }`}>
+                        {settings.maintenanceMode ? (
+                          <><AlertTriangle className="h-4 w-4" /> System under maintenance — registrations locked</>
+                        ) : (
+                          <><CheckCircle className="h-4 w-4" /> System operational — all services active</>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Theme Color</span>
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl shadow-lg" style={{ backgroundColor: settings.themeAccent }} />
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">{settings.portalName}</p>
+                          <p className="text-[10px] text-slate-500">Support: {settings.supportPhone}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ ACTIVITY LOGS SECTION ═══════════════════════ */}
+          {activeSection === 'logs' && (
+            <motion.div
+              key="logs"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2 mb-5">
+                  {['all', 'payment', 'certificate', 'user', 'setting', 'error', 'communication'].map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setLogFilter(type)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        logFilter === type
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => { setLogs([]); addLog('Cleared activity logs', 'user'); }}
+                    className="ml-auto text-[10px] text-red-500 font-bold hover:underline cursor-pointer"
                   >
-                    <option value={4}>4 Weeks (Short rotation)</option>
-                    <option value={8}>8 Weeks (Standard)</option>
-                    <option value={12}>12 Weeks (Extended Research)</option>
+                    Clear Logs
+                  </button>
+                </div>
+
+                {/* Log Entries */}
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {filteredLogs.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-xs">No logs matching this filter</div>
+                  ) : (
+                    filteredLogs.map(log => (
+                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition-all">
+                        <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${
+                          log.type === 'payment' ? 'bg-amber-100 text-amber-600' :
+                          log.type === 'certificate' ? 'bg-emerald-100 text-emerald-600' :
+                          log.type === 'setting' ? 'bg-purple-100 text-purple-600' :
+                          log.type === 'error' ? 'bg-red-100 text-red-600' :
+                          log.type === 'communication' ? 'bg-blue-100 text-blue-600' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {log.type === 'payment' ? <CreditCard className="h-3.5 w-3.5" /> :
+                           log.type === 'certificate' ? <Award className="h-3.5 w-3.5" /> :
+                           log.type === 'setting' ? <Settings2 className="h-3.5 w-3.5" /> :
+                           log.type === 'error' ? <AlertTriangle className="h-3.5 w-3.5" /> :
+                           log.type === 'communication' ? <Mail className="h-3.5 w-3.5" /> :
+                           <Users className="h-3.5 w-3.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-slate-700 font-medium">{log.action}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-slate-400 font-mono">{log.timestamp}</span>
+                            <span className="text-[10px] text-blue-600 font-bold font-mono">{log.admin.split('@')[0]}</span>
+                            <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${
+                              log.type === 'payment' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                              log.type === 'certificate' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+                              log.type === 'setting' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
+                              log.type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' :
+                              'bg-slate-50 text-slate-600 border border-slate-200'
+                            }`}>
+                              {log.type}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ ERROR REPORTS SECTION ═══════════════════════ */}
+          {activeSection === 'errors' && (
+            <motion.div
+              key="errors"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              {/* Error Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">Total Errors</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-slate-900 mt-2">{errors.length}</h3>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">Active Issues</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-red-500 mt-2">{activeErrors}</h3>
+                </div>
+                <div className="rounded-2xl bg-white border border-slate-200 p-5">
+                  <span className="text-[10px] text-slate-500 font-mono uppercase font-bold">Resolved</span>
+                  <h3 className="text-3xl font-mono font-extrabold text-emerald-600 mt-2">{errors.filter(e => e.resolved).length}</h3>
+                </div>
+              </div>
+
+              {/* Firestore Health */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mb-4">
+                  <Zap className="h-4 w-4 text-blue-600" />
+                  System Health Monitor
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">Firestore</p>
+                      <p className="text-[10px] text-emerald-600">Connected & syncing</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">Firebase Auth</p>
+                      <p className="text-[10px] text-emerald-600">Operational</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">PDF Generator</p>
+                      <p className="text-[10px] text-emerald-600">jsPDF loaded</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error List */}
+              <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  Error Log
+                </h3>
+                <div className="space-y-2">
+                  {errors.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-xs flex flex-col items-center gap-2">
+                      <CheckCircle className="h-8 w-8 text-emerald-400" />
+                      <span>No errors recorded — all systems nominal</span>
+                    </div>
+                  ) : (
+                    errors.map(err => (
+                      <div key={err.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                        err.resolved ? 'border-slate-100 opacity-60' : 'border-red-100 bg-red-50/30'
+                      }`}>
+                        <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 ${
+                          err.severity === 'critical' ? 'bg-red-100 text-red-600' :
+                          err.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                          err.severity === 'medium' ? 'bg-amber-100 text-amber-600' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>
+                          <AlertCircle className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-slate-700 font-medium">{err.message}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-slate-400 font-mono">{err.timestamp}</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{err.source}</span>
+                            <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                              err.severity === 'critical' ? 'bg-red-100 text-red-600' :
+                              err.severity === 'high' ? 'bg-orange-100 text-orange-600' :
+                              err.severity === 'medium' ? 'bg-amber-100 text-amber-600' :
+                              'bg-slate-100 text-slate-500'
+                            }`}>
+                              {err.severity}
+                            </span>
+                          </div>
+                        </div>
+                        {!err.resolved && (
+                          <button
+                            onClick={() => setErrors(prev => prev.map(e => e.id === err.id ? { ...e, resolved: true } : e))}
+                            className="px-2.5 py-1 text-[9px] font-bold bg-emerald-600 text-white rounded-lg cursor-pointer hover:bg-emerald-700 transition-all shrink-0"
+                          >
+                            Resolve
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════ COMMUNICATION SECTION ═══════════════════════ */}
+          {activeSection === 'communication' && (
+            <motion.div
+              key="communication"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Compose */}
+                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <Send className="h-4 w-4 text-blue-600" />
+                    Broadcast Announcement
+                  </h3>
+
+                  <div className="space-y-4 text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Subject</label>
+                      <input
+                        type="text"
+                        value={commSubject}
+                        onChange={(e) => setCommSubject(e.target.value)}
+                        placeholder="e.g., Schedule Change Notice"
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-bold text-slate-700">Message Content</label>
+                      <textarea
+                        value={commMessage}
+                        onChange={(e) => setCommMessage(e.target.value)}
+                        rows={5}
+                        placeholder="Write your announcement message here..."
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                      <div className="flex items-center gap-2 text-blue-700">
+                        <Info className="h-4 w-4 shrink-0" />
+                        <p className="text-[10px] leading-relaxed">This announcement updates the global banner visible on all student dashboards in real-time.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={() => {
+                          if (!commMessage.trim()) return;
+                          setSettings(prev => {
+                            const updated = { ...prev, announcementText: `📢 ${commSubject}: ${commMessage}` };
+                            localStorage.setItem('invigo_admin_settings', JSON.stringify(updated));
+                            return updated;
+                          });
+                          addLog(`Broadcast announcement: "${commSubject}"`, 'communication');
+                          setCommSubject('');
+                          setCommMessage('');
+                        }}
+                        disabled={!commMessage.trim()}
+                        className={`flex-1 py-3 font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all cursor-pointer active:scale-[0.98] ${
+                          commMessage.trim()
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        Broadcast to All Students
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview & History */}
+                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <Bell className="h-4 w-4 text-blue-600" />
+                    Current Banner Preview
+                  </h3>
+
+                  <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-3">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Live Dashboard Banner</span>
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold p-3 rounded-lg flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                      <span>{settings.announcementText || 'No current announcement'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-3 border-t border-slate-100">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Recent Communications</span>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {logs.filter(l => l.type === 'communication').length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-4">No communications sent yet</p>
+                      ) : (
+                        logs.filter(l => l.type === 'communication').map(log => (
+                          <div key={log.id} className="p-2.5 rounded-lg border border-slate-100 text-xs">
+                            <p className="text-slate-700 font-medium">{log.action}</p>
+                            <span className="text-[10px] text-slate-400 font-mono">{log.timestamp}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Target: <strong>All Enrolled Students</strong></span>
+                    <button
+                      onClick={() => {
+                        setCommSubject('Welcome Notice');
+                        setCommMessage('Welcome to Invigo Infotech! New orientation materials have been uploaded to your dashboard.');
+                      }}
+                      className="text-blue-600 hover:underline font-bold cursor-pointer text-[10px]"
+                    >
+                      Load Template
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+        </div>
+      </main>
+
+      {/* ─── MODALS ─── */}
+
+      {/* ─── ENROLL STUDENT MODAL ─── */}
+      <AnimatePresence>
+        {showEnrollModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur z-10">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Enroll New Student</h3>
+                  <p className="text-xs text-slate-500">Manually onboard a candidate into a cohort.</p>
+                </div>
+                <button onClick={() => setShowEnrollModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 cursor-pointer">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Full Name</label>
+                    <input type="text" value={enrollForm.fullName} onChange={(e) => setEnrollForm({...enrollForm, fullName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. John Doe" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Email Address</label>
+                    <input type="email" value={enrollForm.email} onChange={(e) => setEnrollForm({...enrollForm, email: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. john@college.edu" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Phone</label>
+                    <input type="text" value={enrollForm.phone} onChange={(e) => setEnrollForm({...enrollForm, phone: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="Phone Number" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">College Name</label>
+                    <input type="text" value={enrollForm.collegeName} onChange={(e) => setEnrollForm({...enrollForm, collegeName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="e.g. DTU" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Domain / Course</label>
+                    <select value={enrollForm.domainId} onChange={(e) => setEnrollForm({...enrollForm, domainId: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500">
+                      {INTERNSHIP_DOMAINS.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700">Start Date</label>
+                    <input type="date" value={enrollForm.startDate} onChange={(e) => setEnrollForm({...enrollForm, startDate: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white">
+                <button onClick={() => setShowEnrollModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={handleAdminEnroll} disabled={enrollLoading} className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-sm">
+                  {enrollLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
+                  Enroll Student
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── CHANGE DOMAIN MODAL ─── */}
+      <AnimatePresence>
+        {changingDomainFor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm"
+            >
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-base">Change User Domain</h3>
+                <button onClick={() => setChangingDomainFor(null)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 cursor-pointer">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-slate-600">Move <strong className="text-slate-800">{changingDomainFor.fullName}</strong> to a new course domain.</p>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Select New Domain</label>
+                  <select value={newDomainId} onChange={(e) => setNewDomainId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500">
+                    {INTERNSHIP_DOMAINS.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
                   </select>
                 </div>
               </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+                <button onClick={() => setChangingDomainFor(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={handleChangeDomain} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 cursor-pointer shadow-sm">Confirm Move</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-              <div className="pt-4 border-t border-slate-200 flex justify-end gap-2.5">
+      {/* ─── CUSTOM CERTIFICATE DATE MODAL ─── */}
+      <AnimatePresence>
+        {certDateFor && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm"
+            >
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-base">Issue Certificate (Custom Date)</h3>
+                <button onClick={() => setCertDateFor(null)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500 cursor-pointer">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-slate-600">Set the issuance date for <strong className="text-slate-800">{certDateFor.fullName}</strong>.</p>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">Certificate Date</label>
+                  <input type="date" value={customCertDate} onChange={(e) => setCustomCertDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+                </div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3">
+                <button onClick={() => setCertDateFor(null)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer">Cancel</button>
+                <button onClick={() => handleIssueCertificateWithDate(certDateFor, customCertDate)} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center gap-1 cursor-pointer shadow-sm"><Award className="h-4 w-4" /> Issue</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ EDIT MODAL ══════════ */}
+      <AnimatePresence>
+        {editingEnrollment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg bg-white rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl relative border border-slate-100"
+            >
+              <button
+                onClick={() => setEditingEnrollment(null)}
+                className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit Student Profile</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">ID: <strong className="font-mono text-blue-600">{editingEnrollment.candidateId}</strong></p>
+              </div>
+
+              <div className="space-y-3.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Start Date</label>
+                    <input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Contact Number</label>
+                    <input
+                      type="text"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Field of Study</label>
+                    <input type="text" value={editFieldOfStudy} onChange={(e) => setEditFieldOfStudy(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-200 outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Degree</label>
+                    <select value={editDegree} onChange={(e) => setEditDegree(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-200 outline-none">
+                      <option value="B.Tech">B.Tech</option>
+                      <option value="Diploma">Diploma</option>
+                      <option value="BCA">BCA</option>
+                      <option value="B.Sc">B.Sc</option>
+                      <option value="MBA">MBA</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Duration (Weeks)</label>
+                    <select value={editDuration} onChange={(e) => setEditDuration(Number(e.target.value))}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-blue-200 outline-none">
+                      <option value={4}>4 Weeks</option>
+                      <option value={8}>8 Weeks</option>
+                      <option value={12}>12 Weeks</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 flex justify-end gap-2.5">
+                  <button
+                    onClick={() => setEditingEnrollment(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ CONFIRMATION MODAL ══════════ */}
+      <AnimatePresence>
+        {confirmAction && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="w-full max-w-sm bg-white rounded-2xl p-6 space-y-4 shadow-2xl"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-red-100 text-red-600 shrink-0">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Confirm Action</h3>
+                  <p className="text-xs text-slate-600 mt-1">{confirmAction.message}</p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2.5">
                 <button
-                  type="button"
-                  onClick={() => setEditingEnrollment(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-xl font-bold transition-all"
+                  onClick={() => setConfirmAction(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={handleSaveEdit}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md"
+                  onClick={confirmAction.onConfirm}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md"
                 >
-                  Save Profile changes
+                  Confirm Delete
                 </button>
               </div>
-            </div>
-
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

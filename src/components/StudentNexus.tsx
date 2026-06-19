@@ -9,7 +9,7 @@ import {
 import { INTERNSHIP_DOMAINS } from '../data';
 import { EnrollmentState } from '../types';
 import { motion } from 'motion/react';
-import { downloadCertificatePDF } from '../utils/pdfGenerator';
+import { downloadCertificatePDF, downloadOfferLetterPDF } from '../utils/pdfGenerator';
 
 const SUGGESTED_ROADMAP_PATHS: Record<string, {
   nextDomainId: string;
@@ -537,16 +537,16 @@ export default function StudentNexus({
           <div className="md:col-span-5 rounded-[1.8rem] bg-white border border-slate-200 p-6 sm:p-8 flex flex-col justify-between items-center text-center shadow-sm hover:border-slate-300 transition-all">
             
             <div className="space-y-1.5">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Your Project Care Score</h3>
-              <p className="text-xs text-slate-500">Overview of your submitted learning checkpoints.</p>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Course Progress</h3>
+              <p className="text-xs text-slate-500">Weekly milestone submissions completed.</p>
             </div>
 
             {/* Circular Gauge */}
             <div className="relative my-6 flex items-center justify-center">
-              <svg className="w-36 h-36">
+              <svg className="w-36 h-36" viewBox="0 0 144 144">
                 {/* Background circle */}
                 <circle
-                  className="text-slate-100"
+                  stroke="#e2e8f0"
                   strokeWidth="10"
                   fill="transparent"
                   r="62"
@@ -555,17 +555,17 @@ export default function StudentNexus({
                 />
                 {/* Foreground accent circle */}
                 <circle
-                  className="text-blue-600 transition-all duration-1000 ease-out"
+                  stroke={progressPercent >= 100 ? '#10b981' : '#2563eb'}
                   strokeWidth="10"
                   strokeDasharray={2 * Math.PI * 62}
                   strokeDashoffset={2 * Math.PI * 62 * (1 - progressPercent / 100)}
                   strokeLinecap="round"
-                  stroke="currentColor"
                   fill="transparent"
                   r="62"
                   cx="72"
                   cy="72"
                   transform="rotate(-90 72 72)"
+                  style={{ transition: 'stroke-dashoffset 1s ease-out' }}
                 />
               </svg>
               <div className="absolute flex flex-col items-center">
@@ -574,16 +574,16 @@ export default function StudentNexus({
               </div>
             </div>
 
-            {/* Micro stats under care meter */}
+            {/* Micro stats */}
             <div className="w-full grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
               <div className="text-center">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Submissions</span>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Submitted</span>
                 <span className="text-sm font-bold text-slate-800 mt-0.5 block">{completedTasksCount} / {tasksList.length}</span>
               </div>
               <div className="text-center border-l border-slate-100">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Study Pace</span>
-                <span className="text-xs font-bold text-emerald-600 mt-0.5 block">
-                  {progressPercent >= 50 ? 'Excellent! 🚀' : progressPercent > 0 ? 'Good Pace' : 'Just Started'}
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Status</span>
+                <span className={`text-xs font-bold mt-0.5 block ${progressPercent >= 100 ? 'text-emerald-600' : progressPercent > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                  {progressPercent >= 100 ? 'All Done ✓' : progressPercent > 0 ? 'In Progress' : 'Not Started'}
                 </span>
               </div>
             </div>
@@ -591,12 +591,37 @@ export default function StudentNexus({
           </div>
 
           {/* Active Enrollment Specifications Card (7 cols) */}
-          <div className="md:col-span-7 rounded-[1.8rem] bg-white border border-slate-205 p-6 sm:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:border-slate-350 transition-all">
+          <div className="md:col-span-7 rounded-[1.8rem] bg-white border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-sm relative overflow-hidden hover:border-slate-300 transition-all">
             
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-150 text-blue-700 text-xs rounded-full font-bold">
-                <Clock className="h-3.5 w-3.5" />
-                <span>ACTIVE COHORT</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs rounded-full font-bold">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>ACTIVE COHORT</span>
+                </div>
+                {/* Payment status chip */}
+                {hasEnrolled && (
+                  activeEnrollment.paymentVerified ? (
+                    <div className="flex items-center gap-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-full font-bold">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        <span>Payment Verified</span>
+                      </div>
+                      <button
+                        onClick={() => downloadOfferLetterPDF(activeEnrollment, matchedDomain.title)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>Offer Letter</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs rounded-full font-bold animate-pulse">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>Payment Pending Verification</span>
+                    </div>
+                  )
+                )}
               </div>
               
               <div className="space-y-1">
@@ -1034,24 +1059,14 @@ export default function StudentNexus({
                   </div>
 
                   <div className="p-6 rounded-[2rem] border border-amber-200 bg-amber-50/50 text-center space-y-4">
-                    <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-lg font-bold font-mono">
-                      !
+                    <div className="mx-auto h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
+                      🎓
                     </div>
                     <div>
-                      <h4 className="font-bold text-amber-800 text-sm">Course Completion In Progress</h4>
+                      <h4 className="font-bold text-amber-800 text-sm">Complete Your Assignments to Unlock</h4>
                       <p className="text-slate-600 text-xs max-w-sm mx-auto mt-1 leading-relaxed">
-                        To apply for your verified credential release, please complete all {tasksList.length} weekly milestones first. Need speed? Use the simulator fast-track below.
+                        Submit all {tasksList.length} weekly project milestones to become eligible for your verified internship certificate.
                       </p>
-                    </div>
-                    
-                    <div className="pt-3 border-t border-slate-150 font-sans">
-                      <button
-                        type="button"
-                        onClick={handleFastTrackCompletion}
-                        className="px-5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
-                      >
-                        ⚡ Fast-Track Course Complete (Simulator Mode)
-                      </button>
                     </div>
                   </div>
 

@@ -152,27 +152,22 @@ export default function EnrollmentWizard({
     setTimeout(() => {
       const compiledOffer: EnrollmentState = {
         ...formData,
+        email: formData.email.toLowerCase(),
         candidateId: generateCandidateId(),
         enrollmentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        status: 'Approved',
+        status: 'Initiated',
         trainingMode: formData.trainingMode,
         amountPaid: finalAmount,
-        paymentTxnId: txnId
+        paymentTxnId: txnId,
+        paymentVerified: false,
+        certificateIssued: false
       };
       
       setSynthesizedOffer(compiledOffer);
       onEnrollmentComplete(compiledOffer);
       setIsSynthesizing(false);
       setCurrentStep(5);
-
-      // Trigger automatic PDF download of offer/acceptance letter
-      try {
-        const domainObj = INTERNSHIP_DOMAINS.find(d => d.id === compiledOffer.domainId) || INTERNSHIP_DOMAINS[0];
-        downloadOfferLetterPDF(compiledOffer, domainObj.title);
-      } catch (err) {
-        console.error('Failed to auto-download offer letter PDF:', err);
-      }
-    }, 1500);
+    }, 2500);
   };
 
   const selectedDomainObject = INTERNSHIP_DOMAINS.find(domain => domain.id === formData.domainId) || INTERNSHIP_DOMAINS[0];
@@ -310,10 +305,7 @@ export default function EnrollmentWizard({
                           placeholder="e.g. 9876543210"
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          disabled={!!currentUser}
-                          className={`w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:bg-white transition-all ${
-                            currentUser ? 'opacity-80 cursor-not-allowed border-slate-200 bg-slate-100' : ''
-                          }`}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:bg-white transition-all"
                         />
                         {errors.phone && <p className="text-[10px] font-mono text-rose-500">{errors.phone}</p>}
                       </div>
@@ -537,9 +529,9 @@ export default function EnrollmentWizard({
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="px-5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 w-32 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-all text-sm font-semibold cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 w-32 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-all text-sm font-semibold cursor-pointer active:scale-95"
                   >
-                    Back Node
+                    ← Back
                   </button>
                 ) : (
                   <div />
@@ -549,9 +541,9 @@ export default function EnrollmentWizard({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-850 hover:bg-slate-800 text-white transition-all text-sm font-semibold flex items-center justify-center gap-1.5 w-32 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white transition-all text-sm font-semibold flex items-center justify-center gap-1.5 w-32 cursor-pointer active:scale-95"
                   >
-                    <span>Proceed</span>
+                    <span>Next</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 ) : (
@@ -566,17 +558,17 @@ export default function EnrollmentWizard({
                       }
                     }}
                     disabled={isSynthesizing}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold transition-all flex items-center justify-center gap-1.5 hover:opacity-90 min-w-44 shadow-lg shadow-blue-500/10 disabled:opacity-50 cursor-pointer"
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-bold transition-all flex items-center justify-center gap-1.5 hover:opacity-90 min-w-44 shadow-lg shadow-blue-500/20 disabled:opacity-50 cursor-pointer active:scale-95"
                   >
                     {isSynthesizing ? (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin text-white" />
-                        <span>Synthesizing offer...</span>
+                        <span>Processing...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-4 w-4 text-white animate-bounce" />
-                        <span>Submit Credentials</span>
+                        <Sparkles className="h-4 w-4 text-white" />
+                        <span>Continue to Payment</span>
                       </>
                     )}
                   </button>
@@ -997,11 +989,7 @@ export default function EnrollmentWizard({
             <div className="flex flex-wrap justify-center gap-4">
               <button
                 onClick={() => {
-                  try {
-                    downloadOfferLetterPDF(synthesizedOffer, selectedDomainObject.title);
-                  } catch (err) {
-                    console.error('Manual PDF download failed:', err);
-                  }
+                  alert('Your offer letter will be available for download in your dashboard once an administrator verifies your payment (typically within 24 hours).');
                 }}
                 className="px-5 py-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs sm:text-sm font-semibold flex items-center gap-1.5 text-slate-600 hover:text-slate-800 transition-all duration-150 cursor-pointer"
               >

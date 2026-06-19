@@ -1,10 +1,9 @@
 {
-  "projectId": "ceremonial-scion-86d0h",
-  "appId": "1:576993619152:web:12160ee85841e06a5d02d5",
-  "apiKey": "AIzaSyCQFIGw64f2nF7B9OwkAyTEjfBuIM7tZ6g",
-  "authDomain": "ceremonial-scion-86d0h.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-c60be570-4218-46b0-9f2d-e88db8c35095",
-  "storageBucket": "ceremonial-scion-86d0h.firebasestorage.app",
-  "messagingSenderId": "576993619152",
+  "projectId": "invigo-infotech-c24dc",
+  "appId": "1:1026343592672:web:614afb688ebc8910f5e685",
+  "apiKey": "AIzaSyDKiW08fln68JUSTBL8ypx015IJy5XQ_ac",
+  "authDomain": "invigo-infotech-c24dc.firebaseapp.com",
+  "storageBucket": "invigo-infotech-c24dc.firebasestorage.app",
+  "messagingSenderId": "1026343592672",
   "measurementId": ""
 }
