@@ -4,12 +4,14 @@ import {
   User, Sparkles, Send, CheckSquare, PlusCircle, BookOpen, AlertTriangle, 
   ExternalLink, Trophy, Sparkle, Download, RefreshCw, MessageSquare, Laptop, 
   Check, Play, Video, HelpCircle, FileText, ArrowRight, Compass, TrendingUp,
-  Camera, Save
+  Camera, Save, Lock, Unlock, FileType, XCircle, X
 } from 'lucide-react';
 import { INTERNSHIP_DOMAINS } from '../data';
-import { EnrollmentState } from '../types';
-import { motion } from 'motion/react';
+import { EnrollmentState, StudyMaterial, MCQQuestion } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 import { downloadCertificatePDF, downloadOfferLetterPDF } from '../utils/pdfGenerator';
+import { db } from '../firebase';
+import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 
 const SUGGESTED_ROADMAP_PATHS: Record<string, {
   nextDomainId: string;
@@ -180,13 +182,73 @@ export default function StudentNexus({
   const [activeSubTab, setActiveSubTab] = useState<'homework' | 'mentor' | 'certificate' | 'roadmap' | 'profile'>('homework');
   const [selectedRoadmapNode, setSelectedRoadmapNode] = useState<'current' | 'next' | 'specialty'>('next');
 
-  // Homework Submission state
-  const [submissionDesc, setSubmissionDesc] = useState('');
-  const [submissionUrl, setSubmissionUrl] = useState('');
-  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
-  const [submittedTasks, setSubmittedTasks] = useState<Record<number, { desc: string, url: string, date: string }>>({
-    0: { desc: 'Completed basic Python functions and initialized data lists.', url: 'https://github.com/priyanshu/python-basics-assessment', date: 'June 18, 2026' },
+  // Study Materials State
+  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
+  
+  // MCQ Test State
+  const [questions, setQuestions] = useState<MCQQuestion[]>([]);
+  const [testResult, setTestResult] = useState<any>(null);
+  const [activeTest, setActiveTest] = useState(false);
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [isSubmittingTest, setIsSubmittingTest] = useState(false);
+
+  // Material Progress (simulated via localStorage or we could use firestore)
+  const [unlockedMaterials, setUnlockedMaterials] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem(`invigo_progress_${activeEnrollment?.candidateId}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [0]; // First material is unlocked by default
   });
+
+  useEffect(() => {
+    if (!activeEnrollment) return;
+    
+    // Fetch materials
+    const matQ = query(collection(db, 'studyMaterials'), where('domainId', '==', activeEnrollment.domainId));
+    const unsubMat = onSnapshot(matQ, snap => {
+      const mats: StudyMaterial[] = [];
+      snap.forEach(d => mats.push({ id: d.id, ...d.data() } as StudyMaterial));
+      mats.sort((a, b) => a.order - b.order);
+      setMaterials(mats);
+      setMaterialsLoading(false);
+    });
+
+    // Fetch questions
+    const qQuery = query(collection(db, 'mcqQuestions'), where('domainId', '==', activeEnrollment.domainId));
+    const unsubQ = onSnapshot(qQuery, snap => {
+      const qs: MCQQuestion[] = [];
+      snap.forEach(d => qs.push({ id: d.id, ...d.data() } as MCQQuestion));
+      // Shuffle or just slice to 10 max
+      setQuestions(qs.slice(0, 10));
+    });
+
+    // Fetch test results
+    if (activeEnrollment.email) {
+      const resQ = query(collection(db, 'testResults'), 
+        where('studentEmail', '==', activeEnrollment.email),
+        where('domainId', '==', activeEnrollment.domainId));
+      const unsubRes = onSnapshot(resQ, snap => {
+        if (!snap.empty) {
+          // Just take the first/latest result
+          setTestResult({ id: snap.docs[0].id, ...snap.docs[0].data() });
+        } else {
+          setTestResult(null);
+        }
+      });
+      return () => { unsubMat(); unsubQ(); unsubRes(); };
+    }
+
+    return () => { unsubMat(); unsubQ(); };
+  }, [activeEnrollment]);
+
+  const handleMarkMaterialComplete = (index: number) => {
+    const newUnlocked = [...unlockedMaterials, index + 1];
+    setUnlockedMaterials(newUnlocked);
+    localStorage.setItem(`invigo_progress_${activeEnrollment.candidateId}`, JSON.stringify(newUnlocked));
+  };
 
   // Mentorship Meeting state
   const [mentorDate, setMentorDate] = useState('2026-06-25');
@@ -253,95 +315,33 @@ export default function StudentNexus({
   const [isCompilingCert, setIsCompilingCert] = useState(false);
   const [certCompiled, setCertCompiled] = useState(false);
 
-  // Function to build student-friendly, domain-specific tasks based on course duration
-  const getTasksForDomain = (domainId: string, totalWeeks: number) => {
-    const aiTasks = [
-      { title: 'Python Basics & NumPy Setup', desc: 'Install Python, set up your workspace environment, and read a standard spreadsheet CSV file.' },
-      { title: 'Data Visuals & Charts', desc: 'Create neat graphs, filter table rows, and clean empty values using Matplotlib & Pandas.' },
-      { title: 'Simple Price Prediction model', desc: 'Build and train a basic regression algorithm to estimate rental properties pricing.' },
-      { title: 'Intro to Image Classification', desc: 'Write a basic neural network to scan and identify handwritten numbers.' },
-      { title: 'Understanding Text Analytics', desc: 'Analyze social comments data and categorize them into positive or negative responses.' },
-      { title: 'Using AI Models from Hugging Face', desc: 'Load a pretrained language model to summarize short news articles.' },
-      { title: 'Accuracy Testing & Error Sweeps', desc: 'Test your program on brand new files, print out accuracy metrics, and fix parameters.' },
-      { title: 'Final Project Deployment', desc: 'Host your interactive AI web app on Hugging Face Spaces for public viewing.' }
-    ];
+  // Calculate Progress Percent based on materials and test
+  const progressPercent = testResult?.passed ? 100 : Math.min(95, Math.round((unlockedMaterials.length / Math.max(1, materials.length)) * 100));
 
-    const webTasks = [
-      { title: 'HTML, CSS & Responsive Pages', desc: 'Build a fully responsive web page profile using clean HTML, CSS, and Tailwind CSS styles.' },
-      { title: 'Interactive React components', desc: 'Design click buttons, input text fields, and list trackers using standard React state hooks.' },
-      { title: 'Connecting App Dashboards', desc: 'Wire up multiple elements to let users easily search, filter, and sort dynamic cards on your site.' },
-      { title: 'Creating a Backend Server API', desc: 'Configure Node.js and Express to answer web requests and serve product list sheets.' },
-      { title: 'Connecting Database (MongoDB / SQL)', desc: 'Set up a database to persistently store, read, edit, or delete items.' },
-      { title: 'User Accounts & Logins', desc: 'Build a standard, clean signup form with secure passwords and login tokens.' },
-      { title: 'Testing API routes & Security Checks', desc: 'Write basic tests to block wrong inputs and encrypt sensitive communications.' },
-      { title: 'Live Full-Stack Hosting', desc: 'Upload your finished web app to Vercel and render libraries for friends to see live.' }
-    ];
+  const submitMCQTest = async () => {
+    setIsSubmittingTest(true);
+    let correct = 0;
+    questions.forEach((q, idx) => {
+      if (answers[idx] === q.correctIndex) correct++;
+    });
+    
+    const score = Math.round((correct / questions.length) * 100);
+    const passed = score >= 60;
 
-    const securityTasks = [
-      { title: 'Ethical Hacking Lab Setup', desc: 'Set up your secure sandbox simulation software and learn standard Linux commands.' },
-      { title: 'Interactive Security Audit Scans', desc: 'Check network ports, scan simulated websites, and map out active server layers.' },
-      { title: 'Inspecting Web Packets', desc: 'Analyze system traffic data in real-time to find plain-text security flaws.' },
-      { title: 'Firewalls & Rate Limit Setup', desc: 'Configure rule blocks to stop automated bots from over-calling server endpoints.' },
-      { title: 'Looking for Database Vulnerabilities', desc: 'Perform audits on text forms to protect databases from injection exploits.' },
-      { title: 'Password Encryption Basics', desc: 'Learn how to salt and hash login passwords before committing them to records.' },
-      { title: 'Defending the Server Host', desc: 'Disable unused protocols on your operating portal to reduce security target areas.' },
-      { title: 'Final Safety Compliance Summary', desc: 'Run automated audit assessments and compile a comprehensive system safety manual.' }
-    ];
-
-    const managementTasks = [
-      { title: 'Business Case Analysis', desc: 'Analyze a major company\'s market statistics and write a summary of their core business strategy.' },
-      { title: 'Reading Balance Sheets & Reports', desc: 'Learn to read profit sheets, calculate business margins, and identify growth metrics.' },
-      { title: 'Planning a Social Media Marketing Drive', desc: 'Create a simple target audience proposal and list 5 marketing metrics to track.' },
-      { title: 'Customer Feedback Interviews', desc: 'Interview 3 potential users to list core features they expect in a learning platform.' },
-      { title: 'Mapping a Product Delivery Chain', desc: 'Draw a basic timeline detailing how raw resources move into finished goods.' },
-      { title: 'Creating a Budget spreadsheet', desc: 'Calculate fixed vs variable monthly expenses, sales volume targets, and breakeven goals.' },
-      { title: 'Organizational Team Structures', desc: 'Detail team roles, manager hierarchies, and prepare a standard corporate structural chart.' },
-      { title: 'Final Project Pitch Presentation', desc: 'Assemble your final strategy slides deck and film a short, clean proposal video.' }
-    ];
-
-    let baseTasks = webTasks;
-    if (domainId === 'ai_ml') baseTasks = aiTasks;
-    else if (domainId === 'cybersec') baseTasks = securityTasks;
-    else if (domainId === 'mba_management' || domainId.includes('management') || domainId.includes('marketing')) baseTasks = managementTasks;
-    else {
-      baseTasks = [
-        { title: 'Course Set up & Environment', desc: 'Configure your tools, set up your workstation, and print a classic Hello-World output.' },
-        { title: 'Understanding Core Mechanics', desc: 'Execute basic formulas, lists, or spreadsheets matching your internship path.' },
-        { title: 'Working with Data Sheets', desc: 'Import information lists, inspect variables, and draw neat comparative charts.' },
-        { title: 'Structuring Main Projects', desc: 'Outline your capstone, prepare interactive options, and write basic input actions.' },
-        { title: 'Reviewing Industry Examples', desc: 'Study 3 top-rated real world cases and describe things they got right.' },
-        { title: 'Integrating Elements together', desc: 'Wire up interactive buttons so data updates instantly upon mouse action.' },
-        { title: 'Code Cleanup & Optimization', desc: 'Review your files, clean up repetitive loops, and write brief user guides.' },
-        { title: 'Final Project Submission', desc: 'Publish your project directory online, draft a clear tutorial readme, and request score approval.' }
-      ];
+    try {
+      await addDoc(collection(db, 'testResults'), {
+        studentEmail: activeEnrollment.email,
+        domainId: activeEnrollment.domainId,
+        score,
+        passed,
+        timestamp: new Date().toISOString()
+      });
+      
+      setActiveTest(false);
+    } catch (e) {
+      console.error(e);
     }
-
-    return baseTasks.slice(0, Math.ceil(totalWeeks));
-  };
-
-  const tasksList = getTasksForDomain(activeEnrollment.domainId, activeEnrollment.durationWeeks);
-  
-  // Calculate Progress Percent: matching Device Care style!
-  const completedTasksCount = Object.keys(submittedTasks).length;
-  const progressPercent = Math.min(100, Math.round((completedTasksCount / tasksList.length) * 100));
-
-  const handleTaskSubmit = (weekIndex: number) => {
-    if (!submissionDesc.trim() || !submissionUrl.trim()) return;
-
-    setIsSubmittingTask(true);
-    setTimeout(() => {
-      setSubmittedTasks((prev) => ({
-        ...prev,
-        [weekIndex]: {
-          desc: submissionDesc,
-          url: submissionUrl,
-          date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-        }
-      }));
-      setSubmissionDesc('');
-      setSubmissionUrl('');
-      setIsSubmittingTask(false);
-    }, 1200);
+    setIsSubmittingTest(false);
   };
 
   const handleMentorBooking = (e: FormEvent) => {
@@ -355,15 +355,11 @@ export default function StudentNexus({
   };
 
   const handleFastTrackCompletion = () => {
-    const allCompleted: Record<number, { desc: string, url: string, date: string }> = {};
-    tasksList.forEach((task, idx) => {
-      allCompleted[idx] = {
-        desc: `System completed milestone verification: ${task.title}`,
-        url: `https://github.com/invigo-student/fast-track-week-${idx + 1}`,
-        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-      };
-    });
-    setSubmittedTasks(allCompleted);
+    // Just unlock all materials
+    const newUnlocked = materials.map((_, i) => i);
+    if (!newUnlocked.includes(0)) newUnlocked.push(0);
+    setUnlockedMaterials(newUnlocked);
+    localStorage.setItem(`invigo_progress_${activeEnrollment.candidateId}`, JSON.stringify(newUnlocked));
   };
 
   const handleCompileCertificate = () => {
@@ -576,9 +572,11 @@ export default function StudentNexus({
 
             {/* Micro stats */}
             <div className="w-full grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
-              <div className="text-center">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Submitted</span>
-                <span className="text-sm font-bold text-slate-800 mt-0.5 block">{completedTasksCount} / {tasksList.length}</span>
+              <div className="bg-slate-50 border border-slate-150 p-4 rounded-[1.4rem]">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Materials Complete</span>
+                <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                  {Math.min(unlockedMaterials.length - 1, materials.length)} / {materials.length}
+                </span>
               </div>
               <div className="text-center border-l border-slate-100">
                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Status</span>
@@ -764,7 +762,7 @@ export default function StudentNexus({
         {/* Sub-Views Swapper content */}
         <div className="pt-2">
           
-          {/* TAB 1: HOMEWORK & PATHWAY */}
+          {/* TAB 1: STUDY MATERIALS & ASSESSMENT */}
           {activeSubTab === 'homework' && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
@@ -773,143 +771,170 @@ export default function StudentNexus({
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <CheckSquare className="h-5 w-5 text-blue-600" />
-                  <span>Weekly Projects Tracker & Code Uploads</span>
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  <span>Study Materials & Assessments</span>
                 </h3>
                 <span className="text-xs text-slate-550 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full">
-                  Submit links to pass verification checks
+                  Complete sequence to unlock certificate
                 </span>
               </div>
 
-              {/* Tasks List */}
-              <div className="space-y-4">
-                {tasksList.map((task, idx) => {
-                  const isTaskSubmitted = submittedTasks[idx] !== undefined;
-                  const isActiveWeek = idx === 1; // Highlight week 2 as currently active focus
+              {materialsLoading ? (
+                <div className="text-center py-10 text-slate-500 flex flex-col items-center">
+                  <RefreshCw className="h-8 w-8 animate-spin mb-3 text-blue-400" />
+                  <p className="text-sm">Loading curriculum...</p>
+                </div>
+              ) : materials.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <BookOpen className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                  <p className="text-sm">No study materials have been assigned to this domain yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {materials.map((material, idx) => {
+                    const isUnlocked = unlockedMaterials.includes(idx);
+                    const isNextToUnlock = isUnlocked && !unlockedMaterials.includes(idx + 1) && idx < materials.length;
 
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`rounded-[1.8rem] border p-5 sm:p-6 transition-all ${
-                        isTaskSubmitted 
-                          ? 'border-emerald-250 bg-emerald-50/20' 
-                          : isActiveWeek 
-                          ? 'border-blue-200 bg-blue-50/30'
-                          : 'border-slate-200 bg-slate-50/30'
-                      }`}
-                    >
-                      
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-200">
-                        <div className="flex gap-3 items-center">
-                          <span className={`h-6 w-6 rounded-full border flex items-center justify-center text-xs font-mono font-extrabold ${
-                            isTaskSubmitted 
-                              ? 'bg-emerald-50 border-emerald-350 text-emerald-600'
-                              : isActiveWeek 
-                              ? 'bg-blue-50 border-blue-450 text-blue-600'
-                              : 'bg-slate-50 border-slate-250 text-slate-500'
-                          }`}>
-                            {idx + 1}
-                          </span>
-                          <h4 className="font-bold text-slate-805 font-sans text-sm sm:text-base">
-                            Week {idx + 1}: {task.title}
-                          </h4>
+                    return (
+                      <div 
+                        key={material.id} 
+                        className={`rounded-[1.8rem] border p-5 transition-all ${
+                          isUnlocked 
+                            ? 'border-blue-200 bg-white shadow-sm' 
+                            : 'border-slate-200 bg-slate-50 opacity-70'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex gap-3 items-center">
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${isUnlocked ? (material.type === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-purple-50 text-purple-600') : 'bg-slate-100 text-slate-400'}`}>
+                              {isUnlocked ? (material.type === 'pdf' ? <FileType className="h-5 w-5" /> : <Video className="h-5 w-5" />) : <Lock className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <h4 className={`font-bold text-sm ${isUnlocked ? 'text-slate-800' : 'text-slate-500'}`}>
+                                {idx + 1}. {material.title}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">
+                                {material.type === 'pdf' ? 'PDF Document' : 'Video Resource'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {isUnlocked ? (
+                            <div className="flex gap-2 w-full sm:w-auto">
+                              <a href={material.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-colors text-center flex-1 sm:flex-none">
+                                Open Material
+                              </a>
+                              {isNextToUnlock && (
+                                <button onClick={() => handleMarkMaterialComplete(idx)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none cursor-pointer">
+                                  <Check className="h-3.5 w-3.5" /> Mark Complete
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-200 font-bold uppercase w-full sm:w-auto text-center">
+                              Locked
+                            </span>
+                          )}
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-                        {/* Plain friendly status labels */}
-                        {isTaskSubmitted ? (
-                          <span className="text-[10px] font-bold tracking-wider bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200 uppercase">
-                            Submitted & Passed ✔
-                          </span>
-                        ) : isActiveWeek ? (
-                          <span className="text-[10px] font-bold tracking-wider bg-blue-650 text-white px-3 py-1 rounded-full uppercase">
-                            Current Active Assignment
-                          </span>
-                        ) : idx === 0 ? (
-                          <span className="text-[10px] text-slate-500 uppercase font-semibold">
-                            Completed Previously
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 uppercase font-semibold">
-                            Upcoming Week
-                          </span>
-                        )}
+              {/* Assessment Section */}
+              {materials.length > 0 && unlockedMaterials.length >= materials.length && (
+                <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
+                  <h4 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-amber-500" /> Final Domain Assessment
+                  </h4>
+                  
+                  {testResult ? (
+                    <div className={`p-5 rounded-2xl border ${testResult.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        {testResult.passed ? <CheckCircle className="h-6 w-6 text-emerald-600" /> : <XCircle className="h-6 w-6 text-red-600" />}
+                        <h5 className={`font-bold text-lg ${testResult.passed ? 'text-emerald-800' : 'text-red-800'}`}>
+                          {testResult.passed ? 'Assessment Passed!' : 'Assessment Failed'}
+                        </h5>
+                      </div>
+                      <p className={`text-sm ${testResult.passed ? 'text-emerald-700' : 'text-red-700'}`}>
+                        Your score: <strong>{testResult.score}%</strong> (Required: 60%)
+                      </p>
+                      {testResult.passed ? (
+                        <p className="text-xs text-emerald-600 mt-2 font-medium">You are now eligible to claim your completion certificate from the Certificate tab.</p>
+                      ) : (
+                        <button onClick={() => setTestResult(null)} className="mt-3 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-xl text-xs font-bold hover:bg-red-50 cursor-pointer">
+                          Retake Assessment
+                        </button>
+                      )}
+                    </div>
+                  ) : activeTest ? (
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h5 className="font-bold text-slate-800">Question {currentQIndex + 1} of {questions.length}</h5>
+                        <span className="text-xs font-mono bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-bold">Pass: 60%</span>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <p className="text-sm font-semibold text-slate-800">{questions[currentQIndex]?.question}</p>
+                        <div className="space-y-2">
+                          {questions[currentQIndex]?.options.map((opt, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setAnswers({...answers, [currentQIndex]: i})}
+                              className={`w-full text-left p-3 rounded-xl border text-sm transition-all cursor-pointer ${answers[currentQIndex] === i ? 'border-blue-500 bg-blue-50 text-blue-800 font-bold' : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'}`}
+                            >
+                              {String.fromCharCode(65 + i)}. {opt}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mt-3.5">
-                        {task.desc}
-                      </p>
-
-                      {/* Submitted view vs pending form actions */}
-                      {isTaskSubmitted ? (
-                        <div className="mt-4 pt-3.5 border-t border-slate-150 text-xs text-slate-700 space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                          <p><span className="text-slate-450 font-bold uppercase text-[10px] block mb-0.5">Your Submission Explanations:</span> <span className="text-slate-800 italic">"{submittedTasks[idx].desc}"</span></p>
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1">
-                            <p className="flex items-center gap-1">
-                              <span className="text-slate-450 font-bold uppercase text-[10px]">Project Directory Link:</span> 
-                              <a href={submittedTasks[idx].url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 font-mono font-bold">
-                                {submittedTasks[idx].url} <ExternalLink className="h-3 w-3 inline" />
-                              </a>
-                            </p>
-                            <span className="text-slate-400 text-[10px] font-mono">Completed: {submittedTasks[idx].date}</span>
-                          </div>
-                        </div>
-                      ) : isActiveWeek ? (
-                        <div className="mt-5 pt-4 border-t border-slate-150 space-y-4">
-                          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-widest block">Hand in Weekly Project Link:</span>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold text-slate-500 uppercase ml-1">GitHub Link / Live Hosted Website</label>
-                              <input
-                                type="url"
-                                placeholder="e.g. https://github.com/myusername/project"
-                                value={submissionUrl}
-                                onChange={(e) => setSubmissionUrl(e.target.value)}
-                                className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-xs placeholder-slate-400 focus:outline-none focus:border-blue-600 shadow-xs"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-semibold text-slate-500 uppercase ml-1">Brief Description (What you built)</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. Completed web forms and styled the buttons."
-                                value={submissionDesc}
-                                onChange={(e) => setSubmissionDesc(e.target.value)}
-                                className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-xs placeholder-slate-400 focus:outline-none focus:border-blue-600 shadow-xs"
-                              />
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleTaskSubmit(idx)}
-                            disabled={isSubmittingTask || !submissionUrl.trim() || !submissionDesc.trim()}
-                            className="w-full sm:w-auto px-6 py-2.5 bg-blue-650 hover:bg-blue-700 disabled:bg-slate-100 disabled:text-slate-350 text-white font-bold rounded-2xl text-xs transition-colors flex justify-center items-center gap-1.5 active:scale-98 cursor-pointer shadow-xs"
+                      <div className="flex justify-between pt-4 border-t border-slate-100">
+                        <button 
+                          onClick={() => setCurrentQIndex(Math.max(0, currentQIndex - 1))}
+                          disabled={currentQIndex === 0}
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 disabled:opacity-50 cursor-pointer"
+                        >
+                          Previous
+                        </button>
+                        {currentQIndex < questions.length - 1 ? (
+                          <button 
+                            onClick={() => setCurrentQIndex(currentQIndex + 1)}
+                            disabled={answers[currentQIndex] === undefined}
+                            className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white disabled:opacity-50 cursor-pointer"
                           >
-                            {isSubmittingTask ? (
-                              <>
-                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                <span>Submitting Homework...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Send className="h-3.5 w-3.5" />
-                                <span>Submit Homework Package</span>
-                              </>
-                            )}
+                            Next Question
                           </button>
-                        </div>
-                      ) : (
-                        <div className="mt-3 pt-3 border-t border-slate-150 text-xs text-slate-400 flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>This homework becomes active when prior milestones are marked completed.</span>
-                        </div>
-                      )}
-
+                        ) : (
+                          <button 
+                            onClick={submitMCQTest}
+                            disabled={Object.keys(answers).length < questions.length || isSubmittingTest}
+                            className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white disabled:opacity-50 hover:bg-emerald-700 flex items-center gap-2 cursor-pointer shadow-sm"
+                          >
+                            {isSubmittingTest ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            Submit Assessment
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ) : (
+                    <div className="bg-slate-50 border border-slate-200 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                      <div>
+                        <h5 className="font-bold text-slate-800 text-sm">Ready for the test?</h5>
+                        <p className="text-xs text-slate-500 mt-1">10 multiple choice questions. Requires 60% to pass.</p>
+                      </div>
+                      <button 
+                        onClick={() => { setActiveTest(true); setCurrentQIndex(0); setAnswers({}); }} 
+                        disabled={questions.length === 0}
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm text-sm cursor-pointer disabled:opacity-50 w-full sm:w-auto text-center"
+                      >
+                        {questions.length === 0 ? 'No Questions Available' : 'Start Assessment'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1043,9 +1068,9 @@ export default function StudentNexus({
                     <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-150 text-xs">
                       <div className="flex items-center gap-2.5 text-slate-505 font-semibold">
                         <Clock className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
-                        <span>Weekly Assignments Submissions ({completedTasksCount} / {tasksList.length})</span>
+                        <span>Study Materials Completed ({Math.min(unlockedMaterials.length - 1, materials.length)} / {materials.length})</span>
                       </div>
-                      <span className="text-amber-500 font-semibold uppercase">{progressPercent}% DONE</span>
+                      <span className="text-amber-500 font-semibold uppercase">{Math.min(95, Math.round((unlockedMaterials.length / Math.max(1, materials.length)) * 100))}% DONE</span>
                     </div>
 
                     <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-150 text-xs">
@@ -1065,7 +1090,7 @@ export default function StudentNexus({
                     <div>
                       <h4 className="font-bold text-amber-800 text-sm">Complete Your Assignments to Unlock</h4>
                       <p className="text-slate-600 text-xs max-w-sm mx-auto mt-1 leading-relaxed">
-                        Submit all {tasksList.length} weekly project milestones to become eligible for your verified internship certificate.
+                        Complete all {materials.length} study materials and pass the final MCQ assessment with a score of 60% or higher to become eligible for your verified internship certificate.
                       </p>
                     </div>
                   </div>
@@ -1581,7 +1606,7 @@ export default function StudentNexus({
                     <div>
                       <span className="text-[9px] uppercase tracking-wider font-bold text-blue-600 block">Milestones Lab Work</span>
                       <span className="text-3xl font-extrabold text-slate-800 font-mono block mt-1.5">
-                        {completedTasksCount * 15} <span className="text-xs font-bold font-sans text-slate-405">HRS</span>
+                        {unlockedMaterials.length * 15} <span className="text-xs font-bold font-sans text-slate-405">HRS</span>
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-3 leading-relaxed font-medium">
@@ -1636,13 +1661,13 @@ export default function StudentNexus({
                     <div>
                       <span className="text-[9px] uppercase tracking-wider font-bold text-blue-300 block">Grand Total Completed Care Time</span>
                       <span className="text-4xl font-black font-mono text-cyan-300 block mt-1.5">
-                        {(completedTasksCount * 15) + (bookingSuccess ? 2 : 0) + extraStudyHours} <span className="text-sm font-bold font-sans text-white/50">HRS</span>
+                        {(unlockedMaterials.length * 15) + (bookingSuccess ? 2 : 0) + extraStudyHours} <span className="text-sm font-bold font-sans text-white/50">HRS</span>
                       </span>
                     </div>
                     <div className="mt-4 pt-3.5 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300">
                       <span>Target: 150 hours</span>
                       <span className="font-bold text-cyan-300">
-                        {Math.round((((completedTasksCount * 15) + (bookingSuccess ? 2 : 0) + extraStudyHours) / 150) * 100)}% Reached
+                        {Math.round((((unlockedMaterials.length * 15) + (bookingSuccess ? 2 : 0) + extraStudyHours) / 150) * 100)}% Reached
                       </span>
                     </div>
                   </div>

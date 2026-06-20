@@ -209,21 +209,30 @@ export default function InternshipsView({
               return (
                 <div
                   key={domain.id}
-                  className="rounded-[1.8rem] border border-slate-200 bg-white overflow-hidden relative group hover:border-blue-300 hover:shadow-md flex flex-col justify-between h-[425px] transition-all duration-300"
+                  className="rounded-[1.8rem] border border-slate-200 bg-white overflow-hidden relative group hover:border-blue-300 hover:shadow-lg flex flex-col justify-between h-[520px] transition-all duration-300 card-hover"
                 >
-                  {/* Decorative corner flash */}
-                  <div className={`absolute top-0 left-0 w-2 h-full bg-gradient-to-b ${domain.gradient}`} />
+                  {/* Domain Image Banner */}
+                  <div className="relative h-40 overflow-hidden">
+                    {domain.imageUrl ? (
+                      <img 
+                        src={domain.imageUrl} 
+                        alt={domain.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br ${domain.gradient} opacity-80`} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-transparent" />
+                    <span className="absolute top-3 right-3 text-[10px] font-bold tracking-[0.1em] text-white uppercase px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-sm border border-white/20 font-sans">
+                      {domain.category}
+                    </span>
+                    <div className="absolute bottom-3 left-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm">
+                      <DynamicIcon className="h-5 w-5 text-blue-600" />
+                    </div>
+                  </div>
 
                   {/* Inner padding frame */}
-                  <div className="p-6 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 border border-slate-200 shadow-inner">
-                        <DynamicIcon className="h-5.5 w-5.5 text-blue-600" />
-                      </div>
-                      <span className="text-[10px] font-bold tracking-[0.1em] text-slate-500 uppercase px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 font-sans">
-                        {domain.category}
-                      </span>
-                    </div>
+                  <div className="p-5 pt-3 space-y-3 flex-1 flex flex-col">
 
                   {/* Interactive Subsidized Pricing */}
                   <div className="flex justify-between items-center bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl font-mono text-[10px]">

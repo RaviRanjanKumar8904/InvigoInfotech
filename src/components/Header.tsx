@@ -29,14 +29,13 @@ export default function Header({ currentTab, setCurrentTab, onInitiateDemo, save
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentTab('home')}>
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg shadow-lg shadow-cyan-500/10">
-              <GraduationCap className="h-6 w-6 text-white" />
-              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white animate-pulse" />
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentTab('home')}>
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+              <img src="/logo.jpg" alt="Invigo Infotech" className="h-9 w-9 object-contain" />
             </div>
             <div>
               <span className="font-display text-xl font-extrabold tracking-tighter text-slate-900">
-                INVIGO <span className="text-blue-600 text-shadow-sm">INFOTECH</span>
+                INVIGO <span className="text-blue-600">INFOTECH</span>
               </span>
               <span className="block text-[8px] font-mono tracking-[4px] text-blue-500 uppercase leading-none mt-0.5">
                 INTERNSHIP PORTAL

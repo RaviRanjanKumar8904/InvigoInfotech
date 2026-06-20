@@ -22,6 +22,7 @@ export interface InternshipDomain {
   skills: string[];
   toolsAndTech: string[];
   gradient: string; // CSS gradient class
+  imageUrl?: string; // Domain card banner image
   phases: {
     title: string;
     description: string;
@@ -52,6 +53,10 @@ export interface EnrollmentState {
   certificateIssued?: boolean;
   certificateDate?: string;
   blocked?: boolean;
+  // MCQ Test fields
+  testScore?: number;
+  testPassed?: boolean;
+  testCompletedAt?: string;
 }
 
 export interface FAQItem {
@@ -82,4 +87,45 @@ export interface ErrorReport {
   source: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   resolved: boolean;
+}
+
+// Study Material for sequential learning
+export interface StudyMaterial {
+  id: string;
+  domainId: string;
+  title: string;
+  description: string;
+  type: 'pdf' | 'video';
+  url: string;
+  order: number;
+  createdAt: string;
+}
+
+// MCQ Question
+export interface MCQQuestion {
+  id: string;
+  domainId: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+}
+
+// Test Result
+export interface TestResult {
+  id: string;
+  studentEmail: string;
+  domainId: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  passed: boolean;
+  completedAt: string;
+}
+
+// Material Progress tracking
+export interface MaterialProgress {
+  id: string;
+  studentEmail: string;
+  domainId: string;
+  completedMaterialIds: string[];
 }

@@ -7,20 +7,21 @@ import {
   TrendingUp, AlertTriangle, LayoutDashboard, FileText,
   Bell, Mail, ChevronLeft, ChevronRight, Download,
   Clock, Zap, Eye, EyeOff, Send, AlertCircle, CheckCircle,
-  XCircle, Info, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, Calendar
+  XCircle, Info, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, Calendar,
+  Plus, BookOpen, FileQuestion, Globe, Video, FileType, Layers
 } from 'lucide-react';
 import { db } from '../firebase';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, addDoc } from 'firebase/firestore';
-import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport } from '../types';
-import { INTERNSHIP_DOMAINS } from '../data';
-import { downloadCertificatePDF } from '../utils/pdfGenerator';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, addDoc, query, where } from 'firebase/firestore';
+import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport, StudyMaterial, MCQQuestion, InternshipDomain } from '../types';
+import { INTERNSHIP_DOMAINS, DEFAULT_MCQ_QUESTIONS } from '../data';
+import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
 
 interface AdminPanelProps {
   currentUser: any;
   setCurrentTab: (tab: string) => void;
 }
 
-type AdminSection = 'dashboard' | 'users' | 'certificates' | 'settings' | 'logs' | 'errors' | 'communication';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'settings' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests';
 
 // ─── Helper: resolve domain title from domainId ───
 function getDomainTitle(domainId: string): string {
@@ -130,6 +131,36 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // Confirmation modal
   const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
+  // Domain management
+  const [firestoreDomains, setFirestoreDomains] = useState<InternshipDomain[]>([]);
+  const [showAddDomainModal, setShowAddDomainModal] = useState(false);
+  const [newDomain, setNewDomain] = useState({
+    title: '', category: 'Tech' as 'Tech' | 'Management' | 'Design' | 'Hardware',
+    shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12',
+    targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '',
+    gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: ''
+  });
+
+  // Study Materials
+  const [allMaterials, setAllMaterials] = useState<StudyMaterial[]>([]);
+  const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [materialForm, setMaterialForm] = useState({
+    domainId: '', title: '', description: '', type: 'pdf' as 'pdf' | 'video',
+    url: '', order: 1
+  });
+  const [materialDomainFilter, setMaterialDomainFilter] = useState('All');
+
+  // MCQ Questions
+  const [allQuestions, setAllQuestions] = useState<MCQQuestion[]>([]);
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [questionForm, setQuestionForm] = useState({
+    domainId: '', question: '',
+    option0: '', option1: '', option2: '', option3: '',
+    correctIndex: 0
+  });
+  const [questionDomainFilter, setQuestionDomainFilter] = useState('All');
+  const [testResults, setTestResults] = useState<any[]>([]);
+
   // ─── Load enrollments from Firestore ───
   useEffect(() => {
     const enrollmentsCol = collection(db, 'enrollments');
@@ -168,7 +199,40 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       { id: 'err_1', timestamp: new Date(Date.now() - 7200000).toLocaleString(), message: 'Firestore cold-start latency spike detected (450ms)', source: 'Firestore SDK', severity: 'low', resolved: true },
     ]);
 
-    return () => unsubscribe();
+    // Load domains from Firestore
+    const domainsCol = collection(db, 'domains');
+    const unsubDomains = onSnapshot(domainsCol, (snap) => {
+      const domains: InternshipDomain[] = [];
+      snap.forEach(d => domains.push({ id: d.id, ...d.data() } as InternshipDomain));
+      setFirestoreDomains(domains);
+    }, () => {});
+
+    // Load study materials
+    const materialsCol = collection(db, 'studyMaterials');
+    const unsubMaterials = onSnapshot(materialsCol, (snap) => {
+      const mats: StudyMaterial[] = [];
+      snap.forEach(d => mats.push({ id: d.id, ...d.data() } as StudyMaterial));
+      mats.sort((a, b) => a.order - b.order);
+      setAllMaterials(mats);
+    }, () => {});
+
+    // Load MCQ questions
+    const questionsCol = collection(db, 'mcqQuestions');
+    const unsubQuestions = onSnapshot(questionsCol, (snap) => {
+      const qs: MCQQuestion[] = [];
+      snap.forEach(d => qs.push({ id: d.id, ...d.data() } as MCQQuestion));
+      setAllQuestions(qs);
+    }, () => {});
+
+    // Load test results
+    const resultsCol = collection(db, 'testResults');
+    const unsubResults = onSnapshot(resultsCol, (snap) => {
+      const results: any[] = [];
+      snap.forEach(d => results.push({ id: d.id, ...d.data() }));
+      setTestResults(results);
+    }, () => {});
+
+    return () => { unsubscribe(); unsubDomains(); unsubMaterials(); unsubQuestions(); unsubResults(); };
   }, []);
 
   // ─── Helpers ───
@@ -473,10 +537,108 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const maxDomainCount = Math.max(...domainDistribution.map(d => d[1]), 1);
 
   // ─── Sidebar Nav Items ───
+  // ─── Domain CRUD ───
+  const handleAddDomain = async () => {
+    const domainId = newDomain.title.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (!domainId || !newDomain.title) return;
+    try {
+      const domainData: any = {
+        title: newDomain.title,
+        category: newDomain.category,
+        shortDesc: newDomain.shortDesc,
+        iconName: newDomain.iconName,
+        durationWeeks: newDomain.durationWeeks.split(',').map(Number).filter(n => !isNaN(n)),
+        targetDegrees: newDomain.targetDegrees.split(',').map(s => s.trim()).filter(Boolean),
+        skills: newDomain.skills.split(',').map(s => s.trim()).filter(Boolean),
+        toolsAndTech: newDomain.toolsAndTech.split(',').map(s => s.trim()).filter(Boolean),
+        gradient: newDomain.gradient,
+        imageUrl: newDomain.imageUrl,
+        phases: []
+      };
+      await setDoc(doc(db, 'domains', domainId), domainData);
+      addLog(`Added new domain: ${newDomain.title}`, 'setting');
+      setShowAddDomainModal(false);
+      setNewDomain({ title: '', category: 'Tech', shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12', targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '', gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '' });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleRemoveDomain = async (domainId: string) => {
+    try {
+      await deleteDoc(doc(db, 'domains', domainId));
+      addLog(`Removed domain: ${domainId}`, 'setting');
+    } catch (err) { console.error(err); }
+  };
+
+  // ─── Study Material CRUD ───
+  const handleAddMaterial = async () => {
+    if (!materialForm.domainId || !materialForm.title || !materialForm.url) return;
+    try {
+      await addDoc(collection(db, 'studyMaterials'), {
+        ...materialForm,
+        createdAt: new Date().toISOString()
+      });
+      addLog(`Added study material: ${materialForm.title} for ${materialForm.domainId}`, 'setting');
+      setShowAddMaterialModal(false);
+      setMaterialForm({ domainId: '', title: '', description: '', type: 'pdf', url: '', order: 1 });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleRemoveMaterial = async (materialId: string) => {
+    try {
+      await deleteDoc(doc(db, 'studyMaterials', materialId));
+      addLog(`Removed study material: ${materialId}`, 'setting');
+    } catch (err) { console.error(err); }
+  };
+
+  // ─── MCQ CRUD ───
+  const handleAddQuestion = async () => {
+    if (!questionForm.domainId || !questionForm.question) return;
+    try {
+      await addDoc(collection(db, 'mcqQuestions'), {
+        domainId: questionForm.domainId,
+        question: questionForm.question,
+        options: [questionForm.option0, questionForm.option1, questionForm.option2, questionForm.option3],
+        correctIndex: questionForm.correctIndex
+      });
+      addLog(`Added MCQ question for ${questionForm.domainId}`, 'setting');
+      setShowAddQuestionModal(false);
+      setQuestionForm({ domainId: '', question: '', option0: '', option1: '', option2: '', option3: '', correctIndex: 0 });
+    } catch (err) { console.error(err); }
+  };
+
+  const handleRemoveQuestion = async (questionId: string) => {
+    try {
+      await deleteDoc(doc(db, 'mcqQuestions', questionId));
+      addLog(`Removed MCQ question: ${questionId}`, 'setting');
+    } catch (err) { console.error(err); }
+  };
+
+  // Seed default MCQ questions for a domain
+  const handleSeedQuestions = async (domainId: string) => {
+    const defaults = DEFAULT_MCQ_QUESTIONS[domainId];
+    if (!defaults) return;
+    try {
+      for (const q of defaults) {
+        await addDoc(collection(db, 'mcqQuestions'), { domainId, ...q });
+      }
+      addLog(`Seeded ${defaults.length} default MCQ questions for ${domainId}`, 'setting');
+    } catch (err) { console.error(err); }
+  };
+
+  // Get all domains (Firestore + hardcoded merged)
+  const allDomains = useMemo(() => {
+    const fsIds = firestoreDomains.map(d => d.id);
+    const hardcoded = INTERNSHIP_DOMAINS.filter(d => !fsIds.includes(d.id));
+    return [...firestoreDomains, ...hardcoded];
+  }, [firestoreDomains]);
+
   const navItems: { id: AdminSection; label: string; icon: any; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'users', label: 'User Management', icon: Users, badge: totalStudents },
     { id: 'certificates', label: 'Certificates', icon: Award, badge: certifiedCount },
+    { id: 'domains', label: 'Domain Management', icon: Globe },
+    { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
+    { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
     { id: 'settings', label: 'Settings', icon: Settings2 },
     { id: 'logs', label: 'Activity Logs', icon: Activity, badge: logs.length },
     { id: 'errors', label: 'Error Reports', icon: AlertTriangle, badge: activeErrors },
@@ -1752,6 +1914,208 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
             </motion.div>
           )}
 
+          {/* ═══ DOMAINS MANAGEMENT SECTION ═══ */}
+          {activeSection === 'domains' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Domain Management</h2>
+                  <p className="text-xs text-slate-500 mt-1">Add, edit, or remove internship domains</p>
+                </div>
+                <button onClick={() => setShowAddDomainModal(true)} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                  <Plus className="h-4 w-4" /> Add New Domain
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {allDomains.map(domain => (
+                  <div key={domain.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    {domain.imageUrl && (
+                      <div className="h-28 overflow-hidden">
+                        <img src={domain.imageUrl} alt={domain.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-sm text-slate-800">{domain.title}</h3>
+                          <span className="text-[10px] text-slate-500 font-mono uppercase">{domain.category}</span>
+                        </div>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${firestoreDomains.find(d => d.id === domain.id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                          {firestoreDomains.find(d => d.id === domain.id) ? 'Firestore' : 'Hardcoded'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-2">{domain.shortDesc}</p>
+                      <div className="flex gap-2">
+                        {firestoreDomains.find(d => d.id === domain.id) && (
+                          <button onClick={() => setConfirmAction({ message: `Delete domain "${domain.title}"? This cannot be undone.`, onConfirm: () => { handleRemoveDomain(domain.id); setConfirmAction(null); } })} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 cursor-pointer flex items-center gap-1">
+                            <Trash2 className="h-3 w-3" /> Remove
+                          </button>
+                        )}
+                        <span className="text-[10px] text-slate-400 self-center">{domain.durationWeeks?.join('/')} weeks</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══ STUDY MATERIALS SECTION ═══ */}
+          {activeSection === 'materials' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Study Materials</h2>
+                  <p className="text-xs text-slate-500 mt-1">Manage PDF and video resources per domain (sequentially unlocked)</p>
+                </div>
+                <button onClick={() => setShowAddMaterialModal(true)} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                  <Plus className="h-4 w-4" /> Add Material
+                </button>
+              </div>
+
+              {/* Filter by domain */}
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setMaterialDomainFilter('All')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${materialDomainFilter === 'All' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>All</button>
+                {allDomains.slice(0, 8).map(d => (
+                  <button key={d.id} onClick={() => setMaterialDomainFilter(d.id)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${materialDomainFilter === d.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{d.title}</button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                {(materialDomainFilter === 'All' ? allMaterials : allMaterials.filter(m => m.domainId === materialDomainFilter)).map(material => (
+                  <div key={material.id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4">
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${material.type === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-purple-50 text-purple-600'}`}>
+                      {material.type === 'pdf' ? <FileType className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-sm text-slate-800 truncate">{material.title}</h4>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                        <span className="font-mono">{getDomainTitle(material.domainId)}</span>
+                        <span>•</span>
+                        <span>Order: {material.order}</span>
+                        <span>•</span>
+                        <span className="uppercase font-bold">{material.type}</span>
+                      </div>
+                    </div>
+                    <a href={material.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 hover:bg-blue-100">View</a>
+                    <button onClick={() => handleRemoveMaterial(material.id)} className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 hover:bg-red-100 cursor-pointer">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {allMaterials.length === 0 && (
+                  <div className="text-center py-12 text-slate-400 text-sm">
+                    <BookOpen className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                    No study materials added yet. Click "Add Material" to begin.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══ MCQ TESTS SECTION ═══ */}
+          {activeSection === 'mcqTests' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">MCQ Test Management</h2>
+                  <p className="text-xs text-slate-500 mt-1">Manage assessment questions per domain. Students need 60% to pass.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowAddQuestionModal(true)} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                    <Plus className="h-4 w-4" /> Add Question
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick seed buttons */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                <h4 className="text-xs font-bold text-amber-800">Quick Seed Default Questions</h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.keys(DEFAULT_MCQ_QUESTIONS).map(domainId => {
+                    const existing = allQuestions.filter(q => q.domainId === domainId).length;
+                    return (
+                      <button key={domainId} onClick={() => handleSeedQuestions(domainId)} disabled={existing >= 10} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${existing >= 10 ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'}`}>
+                        {getDomainTitle(domainId)} ({existing}/10)
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Filter */}
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setQuestionDomainFilter('All')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${questionDomainFilter === 'All' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>All ({allQuestions.length})</button>
+                {allDomains.slice(0, 8).map(d => {
+                  const count = allQuestions.filter(q => q.domainId === d.id).length;
+                  return (
+                    <button key={d.id} onClick={() => setQuestionDomainFilter(d.id)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${questionDomainFilter === d.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200'}`}>{d.title} ({count})</button>
+                  );
+                })}
+              </div>
+
+              {/* Questions list */}
+              <div className="space-y-3">
+                {(questionDomainFilter === 'All' ? allQuestions : allQuestions.filter(q => q.domainId === questionDomainFilter)).map((q, idx) => (
+                  <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-slate-500 font-mono">{getDomainTitle(q.domainId)} • Q{idx + 1}</span>
+                        <p className="text-sm font-bold text-slate-800 mt-1">{q.question}</p>
+                      </div>
+                      <button onClick={() => handleRemoveQuestion(q.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 cursor-pointer">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {q.options.map((opt, i) => (
+                        <div key={i} className={`text-xs px-3 py-1.5 rounded-lg border ${i === q.correctIndex ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                          {String.fromCharCode(65 + i)}. {opt} {i === q.correctIndex && '✓'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {allQuestions.length === 0 && (
+                  <div className="text-center py-12 text-slate-400 text-sm">
+                    <FileQuestion className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                    No questions added yet. Use the seed buttons above or add manually.
+                  </div>
+                )}
+              </div>
+
+              {/* Test Results */}
+              {testResults.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-600" /> Recent Test Results</h3>
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead><tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="text-left px-4 py-2 font-bold text-slate-600">Student</th>
+                        <th className="text-left px-4 py-2 font-bold text-slate-600">Domain</th>
+                        <th className="text-center px-4 py-2 font-bold text-slate-600">Score</th>
+                        <th className="text-center px-4 py-2 font-bold text-slate-600">Status</th>
+                      </tr></thead>
+                      <tbody>
+                        {testResults.slice(0, 20).map(r => (
+                          <tr key={r.id} className="border-b border-slate-100">
+                            <td className="px-4 py-2 text-slate-800 font-medium">{r.studentEmail}</td>
+                            <td className="px-4 py-2 text-slate-600">{getDomainTitle(r.domainId)}</td>
+                            <td className="px-4 py-2 text-center font-bold">{r.score}%</td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{r.passed ? 'PASS' : 'FAIL'}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
         </div>
       </main>
 
@@ -2032,6 +2396,75 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         )}
       </AnimatePresence>
 
+      {/* ─── ADD DOMAIN MODAL ─── */}
+      <AnimatePresence>
+        {showAddDomainModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 className="font-bold text-slate-800">Add New Domain</h3>
+                <button onClick={() => setShowAddDomainModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-500"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Domain Title</label><input type="text" value={newDomain.title} onChange={e => setNewDomain({...newDomain, title: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="e.g. Data Science & Analytics" /></div>
+                <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Short Description</label><textarea value={newDomain.shortDesc} onChange={e => setNewDomain({...newDomain, shortDesc: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" rows={2} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Category</label><select value={newDomain.category} onChange={e => setNewDomain({...newDomain, category: e.target.value as any})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"><option>Tech</option><option>Management</option><option>Design</option><option>Hardware</option></select></div>
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Durations (comma separated)</label><input type="text" value={newDomain.durationWeeks} onChange={e => setNewDomain({...newDomain, durationWeeks: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
+                </div>
+                <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Image URL (Optional)</label><input type="text" value={newDomain.imageUrl} onChange={e => setNewDomain({...newDomain, imageUrl: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="/images/my-domain.png" /></div>
+                <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Skills (comma separated)</label><input type="text" value={newDomain.skills} onChange={e => setNewDomain({...newDomain, skills: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white">
+                <button onClick={() => setShowAddDomainModal(false)} className="px-4 py-2 border rounded-xl font-bold">Cancel</button>
+                <button onClick={handleAddDomain} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold">Save Domain</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── ADD MATERIAL MODAL ─── */}
+      <AnimatePresence>
+        {showAddMaterialModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center"><h3 className="font-bold">Add Material</h3><button onClick={() => setShowAddMaterialModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full"><X className="h-4 w-4" /></button></div>
+              <div className="p-5 space-y-3">
+                <div><label className="text-xs font-bold">Domain</label><select value={materialForm.domainId} onChange={e => setMaterialForm({...materialForm, domainId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="">Select Domain...</option>{allDomains.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}</select></div>
+                <div><label className="text-xs font-bold">Title</label><input type="text" value={materialForm.title} onChange={e => setMaterialForm({...materialForm, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                <div><label className="text-xs font-bold">Type</label><select value={materialForm.type} onChange={e => setMaterialForm({...materialForm, type: e.target.value as any})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="pdf">PDF Document</option><option value="video">Video Link</option></select></div>
+                <div><label className="text-xs font-bold">URL</label><input type="text" value={materialForm.url} onChange={e => setMaterialForm({...materialForm, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                <div><label className="text-xs font-bold">Unlock Order (e.g. 1, 2, 3)</label><input type="number" value={materialForm.order} onChange={e => setMaterialForm({...materialForm, order: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setShowAddMaterialModal(false)} className="px-4 py-2 border rounded-xl font-bold text-xs">Cancel</button><button onClick={handleAddMaterial} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs">Save</button></div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── ADD MCQ QUESTION MODAL ─── */}
+      <AnimatePresence>
+        {showAddQuestionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white"><h3 className="font-bold">Add MCQ Question</h3><button onClick={() => setShowAddQuestionModal(false)} className="p-2 bg-slate-50 rounded-full"><X className="h-4 w-4" /></button></div>
+              <div className="p-5 space-y-3">
+                <div><label className="text-xs font-bold">Domain</label><select value={questionForm.domainId} onChange={e => setQuestionForm({...questionForm, domainId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="">Select Domain...</option>{allDomains.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}</select></div>
+                <div><label className="text-xs font-bold">Question text</label><textarea value={questionForm.question} onChange={e => setQuestionForm({...questionForm, question: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" rows={3} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs font-bold text-slate-500">Option A</label><input type="text" value={questionForm.option0} onChange={e => setQuestionForm({...questionForm, option0: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                  <div><label className="text-xs font-bold text-slate-500">Option B</label><input type="text" value={questionForm.option1} onChange={e => setQuestionForm({...questionForm, option1: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                  <div><label className="text-xs font-bold text-slate-500">Option C</label><input type="text" value={questionForm.option2} onChange={e => setQuestionForm({...questionForm, option2: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                  <div><label className="text-xs font-bold text-slate-500">Option D</label><input type="text" value={questionForm.option3} onChange={e => setQuestionForm({...questionForm, option3: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                </div>
+                <div><label className="text-xs font-bold">Correct Option</label><select value={questionForm.correctIndex} onChange={e => setQuestionForm({...questionForm, correctIndex: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value={0}>Option A</option><option value={1}>Option B</option><option value={2}>Option C</option><option value={3}>Option D</option></select></div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white"><button onClick={() => setShowAddQuestionModal(false)} className="px-4 py-2 border rounded-xl font-bold text-xs">Cancel</button><button onClick={handleAddQuestion} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs">Save Question</button></div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

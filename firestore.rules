@@ -45,5 +45,38 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn()
                     && (resource.data.email.lower() == request.auth.token.email.lower()));
     }
+
+    // Domains collection - public read, admin write
+    match /domains/{domainId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Study Materials - authenticated read, admin write
+    match /studyMaterials/{materialId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // MCQ Questions - authenticated read, admin write
+    match /mcqQuestions/{questionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Test Results
+    match /testResults/{resultId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn()
+        && resource.data.studentEmail.lower() == request.auth.token.email.lower());
+      allow update, delete: if isAdmin();
+    }
+
+    // Material Progress
+    match /materialProgress/{progressId} {
+      allow read, write: if isAdmin() || (isSignedIn()
+        && resource.data.studentEmail.lower() == request.auth.token.email.lower());
+      allow create: if isSignedIn();
+    }
   }
 }

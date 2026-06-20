@@ -1,5 +1,20 @@
 import { InternshipDomain, FAQItem } from './types';
 
+// Domain image mapping - maps domain IDs to their card images
+export const DOMAIN_IMAGES: Record<string, string> = {
+  building_construction: '/domain_building_construction.png',
+  autocad: '/domain_autocad.png',
+  web_development: '/domain_web_development.png',
+  python_programming: '/domain_python_programming.png',
+  data_science: '/domain_data_science.png',
+  revit: '/domain_revit.png',
+  full_stack: '/domain_full_stack.png',
+  core_java: '/domain_core_java.png',
+  electric_vehicle: '/domain_electric_vehicle.png',
+  solidworks: '/domain_solidworks.png',
+  ic_engine: '/domain_ic_engine.png',
+};
+
 export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'building_construction',
@@ -12,6 +27,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Structural Estimations', 'Foundation Calculus', 'Material Strength Analysis', 'Project Management'],
     toolsAndTech: ['MS Project', 'P6 Primavera', 'STAAD.Pro', 'Concrete Mix Calibration'],
     gradient: 'from-amber-600 via-orange-600 to-red-700',
+    imageUrl: '/domain_building_construction.png',
     phases: [
       {
         title: 'Structural Material Diagnostics',
@@ -41,6 +57,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['2D Geometric Drafting', 'Isometric Projections', 'Architectural Layout Planning', 'Orthographic Projection Models'],
     toolsAndTech: ['Autodesk AutoCAD', 'CAD coordinate helpers', 'Standard Layer libraries', 'Plotting & Sheet Sets'],
     gradient: 'from-red-500 via-rose-600 to-pink-700',
+    imageUrl: '/domain_autocad.png',
     phases: [
       {
         title: '2D Coordinate & Isometric Drafts',
@@ -70,6 +87,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Semantic DOM Structure', 'Advanced Flexbox and CSS Grids', 'Dynamic Core JavaScript', 'Responsive Styling & Layouts'],
     toolsAndTech: ['HTML5', 'CSS3', 'JavaScript ES6+', 'Tailwind CSS', 'Vite compiler', 'Git control'],
     gradient: 'from-cyan-500 via-blue-600 to-indigo-700',
+    imageUrl: '/domain_web_development.png',
     phases: [
       {
         title: 'Semantic Layouts and CSS Styling',
@@ -99,6 +117,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['OOP Design Patterns', 'File Input/Output Engines', 'Algorithm Complexity Analysis', 'Excel and API Automation'],
     toolsAndTech: ['Python 3+', 'Pipenv environments', 'Jupyter Lab', 'Pandas datasets', 'OpenPyXL excel tools', 'Requests SDK'],
     gradient: 'from-yellow-500 via-green-600 to-teal-700',
+    imageUrl: '/domain_python_programming.png',
     phases: [
       {
         title: 'Algorithmic Data Structures',
@@ -128,6 +147,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Exploratory Statistical Audits', 'Feature Engineering Matrices', 'Regression & RandomForest Modeling', 'Interactive Data Dashboards'],
     toolsAndTech: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn', 'Matplotlib & Seaborn', 'Tableau desktop tools'],
     gradient: 'from-rose-500 via-purple-600 to-indigo-700',
+    imageUrl: '/domain_data_science.png',
     phases: [
       {
         title: 'Data Cleaning & Exploratory Analysis',
@@ -157,6 +177,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Parametric Family Design', 'Structural Level Modeling', 'BIM Interoperability', 'Material Schedule Audit'],
     toolsAndTech: ['Autodesk Revit', 'BIM parameters', 'Enscape renderer', 'Material schedules lists'],
     gradient: 'from-sky-400 via-blue-500 to-indigo-600',
+    imageUrl: '/domain_revit.png',
     phases: [
       {
         title: 'Levels, Walls, and basic layouts',
@@ -186,6 +207,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['React Virtual DOM', 'Asynchronous API Gateways', 'Relational/Non-relational Schemas', 'JWT Token Authentication'],
     toolsAndTech: ['React.js', 'Node.js', 'Express.js', 'MongoDB / SQL', 'TypeScript', 'Tailwind CSS'],
     gradient: 'from-emerald-400 via-teal-600 to-cyan-700',
+    imageUrl: '/domain_full_stack.png',
     phases: [
       {
         title: 'Responsive Frontend Framework State',
@@ -215,6 +237,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Java Collections Pipeline', 'JVM Heap Management', 'Spring Boot API Routing', 'Hibernate & JPA Persistence'],
     toolsAndTech: ['Java 17+', 'Spring Boot framework', 'Hibernate ORM', 'Maven Builds tools', 'PostgreSQL SQL', 'JUnit Engine'],
     gradient: 'from-orange-500 via-rose-600 to-indigo-700',
+    imageUrl: '/domain_core_java.png',
     phases: [
       {
         title: 'OOP & Concurrent Collection Libraries',
@@ -241,9 +264,10 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     iconName: 'Cpu',
     durationWeeks: [4, 8, 12],
     targetDegrees: ['B.Tech', 'Diploma'],
-    skills: ['Battery Cell Balancing', 'BMS Modeling and Safety', 'BLDC Motor Speed speed', 'Kinetic Energy Recov. Models'],
+    skills: ['Battery Cell Balancing', 'BMS Modeling and Safety', 'BLDC Motor Speed Control', 'Kinetic Energy Recovery Models'],
     toolsAndTech: ['MATLAB Sim', 'BMS Hardware', 'BLDC Motors configs', 'Battery Packs Systems'],
     gradient: 'from-green-500 via-emerald-600 to-teal-700',
+    imageUrl: '/domain_electric_vehicle.png',
     phases: [
       {
         title: 'EV Battery Pack Cell Simulation',
@@ -273,6 +297,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Parametric Feature Design', 'Kinematic Assembly Simulation', 'Stress/Load Finite Elements Analysis', 'Technical Sheet Drafting'],
     toolsAndTech: ['DS SolidWorks', 'FEA Simulation tools', 'Assembly relations', 'Drafting standards'],
     gradient: 'from-blue-500 via-indigo-600 to-sky-700',
+    imageUrl: '/domain_solidworks.png',
     phases: [
       {
         title: 'Part Modeling & Sketches Design',
@@ -302,6 +327,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
     skills: ['Otto & Diesel Cycle Calculus', 'Valve Timing Layout Optimization', 'Air-Fuel Induction Schedules', 'Exhaust Emission Auditing'],
     toolsAndTech: ['Thermodynamics', 'Engine Simulators', 'Combustion analyzers', 'CFD basics'],
     gradient: 'from-orange-600 via-red-650 to-amber-700',
+    imageUrl: '/domain_ic_engine.png',
     phases: [
       {
         title: 'Indicated Thermal Cycle Efficiency',
@@ -341,7 +367,11 @@ export const FAQS: FAQItem[] = [
   },
   {
     question: 'Can I switch my domain halfway through the internship?',
-    answer: 'Because each program uses highly specific, structured physical/logical nodes and mentor hours, domain allocation is locked once Phase I is initialized. We advise reviewing all 16 domains before final enrollment.'
+    answer: 'Because each program uses highly specific, structured physical/logical nodes and mentor hours, domain allocation is locked once Phase I is initialized. We advise reviewing all domains before final enrollment.'
+  },
+  {
+    question: 'What is the MCQ test requirement for certification?',
+    answer: 'To receive your internship completion certificate, you must pass a 10-question MCQ assessment with a minimum score of 60%. The test evaluates your understanding of core concepts covered during the internship. You can retake the test if needed.'
   }
 ];
 
@@ -379,3 +409,67 @@ export const TESTIMONIALS = [
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?fit=crop&w=150&h=150'
   }
 ];
+
+// Default MCQ questions for each seed domain
+export const DEFAULT_MCQ_QUESTIONS: Record<string, { question: string; options: string[]; correctIndex: number }[]> = {
+  web_development: [
+    { question: 'What does HTML stand for?', options: ['Hyper Text Markup Language', 'High Tech Modern Language', 'Hyper Transfer Markup Logic', 'Home Tool Markup Language'], correctIndex: 0 },
+    { question: 'Which CSS property is used to change text color?', options: ['font-color', 'text-color', 'color', 'text-style'], correctIndex: 2 },
+    { question: 'What is the correct syntax for referring to an external script?', options: ['<script href="file.js">', '<script name="file.js">', '<script src="file.js">', '<script file="file.js">'], correctIndex: 2 },
+    { question: 'Which HTML element is used for the largest heading?', options: ['<heading>', '<h6>', '<head>', '<h1>'], correctIndex: 3 },
+    { question: 'What does CSS stand for?', options: ['Creative Style Sheets', 'Cascading Style Sheets', 'Computer Style Sheets', 'Colorful Style Sheets'], correctIndex: 1 },
+    { question: 'Which JavaScript method is used to select an HTML element by ID?', options: ['getElementById()', 'getElement()', 'querySelector()', 'findById()'], correctIndex: 0 },
+    { question: 'What is the correct way to declare a JavaScript variable?', options: ['variable x = 5', 'v x = 5', 'let x = 5', 'int x = 5'], correctIndex: 2 },
+    { question: 'Which HTML tag is used to create a hyperlink?', options: ['<link>', '<a>', '<href>', '<url>'], correctIndex: 1 },
+    { question: 'What does the "flex" in CSS Flexbox refer to?', options: ['Flexible Box Layout', 'Fixed Layout Extension', 'Float Extension Layout', 'Flex Text Layout'], correctIndex: 0 },
+    { question: 'Which HTTP method is used to send data to a server?', options: ['GET', 'SEND', 'POST', 'PUT'], correctIndex: 2 },
+  ],
+  python_programming: [
+    { question: 'What is the output of print(2 ** 3)?', options: ['6', '8', '9', '5'], correctIndex: 1 },
+    { question: 'Which keyword is used to define a function in Python?', options: ['function', 'def', 'func', 'define'], correctIndex: 1 },
+    { question: 'What data type is the result of: type(3.14)?', options: ['int', 'double', 'float', 'decimal'], correctIndex: 2 },
+    { question: 'How do you start a comment in Python?', options: ['//', '/*', '#', '--'], correctIndex: 2 },
+    { question: 'Which method adds an element to the end of a list?', options: ['add()', 'insert()', 'append()', 'push()'], correctIndex: 2 },
+    { question: 'What does len() function do?', options: ['Returns length of an object', 'Creates a new list', 'Converts to string', 'Loops through items'], correctIndex: 0 },
+    { question: 'Which of the following is NOT a Python data type?', options: ['list', 'tuple', 'array', 'dictionary'], correctIndex: 2 },
+    { question: 'What is the correct file extension for Python files?', options: ['.python', '.py', '.pt', '.pyt'], correctIndex: 1 },
+    { question: 'Which loop is used when the number of iterations is known?', options: ['while', 'do-while', 'for', 'repeat'], correctIndex: 2 },
+    { question: 'What does pip stand for in Python?', options: ['Python Install Packages', 'Pip Installs Packages', 'Package Installation Program', 'Python Index Package'], correctIndex: 1 },
+  ],
+  full_stack: [
+    { question: 'What is React.js primarily used for?', options: ['Backend APIs', 'Database management', 'Building user interfaces', 'Server deployment'], correctIndex: 2 },
+    { question: 'Which command creates a new React app?', options: ['npm new react', 'npx create-react-app', 'npm init react', 'react create app'], correctIndex: 1 },
+    { question: 'What is Node.js?', options: ['A browser engine', 'A JavaScript runtime', 'A CSS framework', 'A database system'], correctIndex: 1 },
+    { question: 'Which database is NoSQL?', options: ['MySQL', 'PostgreSQL', 'MongoDB', 'Oracle'], correctIndex: 2 },
+    { question: 'What does REST stand for?', options: ['Representational State Transfer', 'Remote Execution Standard Transfer', 'Realtime State Testing', 'Resource State Transaction'], correctIndex: 0 },
+    { question: 'Which HTTP status code means "Not Found"?', options: ['200', '301', '404', '500'], correctIndex: 2 },
+    { question: 'What is JWT used for?', options: ['Styling web pages', 'Authentication tokens', 'Database queries', 'Image processing'], correctIndex: 1 },
+    { question: 'Which React hook manages state?', options: ['useEffect', 'useState', 'useRef', 'useContext'], correctIndex: 1 },
+    { question: 'What is Express.js?', options: ['A frontend framework', 'A testing library', 'A Node.js web framework', 'A database ORM'], correctIndex: 2 },
+    { question: 'What does CORS stand for?', options: ['Cross-Origin Resource Sharing', 'Client Object Resource System', 'Central Origin Request Service', 'Cross-Object Response Standard'], correctIndex: 0 },
+  ],
+  data_science: [
+    { question: 'What library is primarily used for data manipulation in Python?', options: ['NumPy', 'Pandas', 'Matplotlib', 'Scikit-learn'], correctIndex: 1 },
+    { question: 'What does EDA stand for?', options: ['Electronic Data Analysis', 'Exploratory Data Analysis', 'Extended Data Architecture', 'Estimated Data Assessment'], correctIndex: 1 },
+    { question: 'Which algorithm is used for classification?', options: ['Linear Regression', 'Random Forest', 'K-Means', 'PCA'], correctIndex: 1 },
+    { question: 'What is overfitting?', options: ['Model performs well on all data', 'Model memorizes training data', 'Model ignores outliers', 'Model generalizes well'], correctIndex: 1 },
+    { question: 'Which chart shows the distribution of a single variable?', options: ['Scatter plot', 'Line chart', 'Histogram', 'Pie chart'], correctIndex: 2 },
+    { question: 'What is the purpose of train_test_split?', options: ['Clean data', 'Divide data for training and testing', 'Normalize features', 'Remove duplicates'], correctIndex: 1 },
+    { question: 'What does MSE stand for?', options: ['Maximum Standard Error', 'Mean Squared Error', 'Minimum Standard Estimation', 'Model Score Evaluation'], correctIndex: 1 },
+    { question: 'Which technique reduces dimensionality?', options: ['Random Forest', 'PCA', 'KNN', 'SVM'], correctIndex: 1 },
+    { question: 'What is a confusion matrix?', options: ['A complex algorithm', 'Performance metric for classification', 'Data cleaning tool', 'Feature selection method'], correctIndex: 1 },
+    { question: 'What type of learning uses labeled data?', options: ['Unsupervised', 'Reinforcement', 'Supervised', 'Transfer'], correctIndex: 2 },
+  ],
+  core_java: [
+    { question: 'Which keyword creates a new object in Java?', options: ['create', 'new', 'init', 'make'], correctIndex: 1 },
+    { question: 'What is JVM?', options: ['Java Visual Machine', 'Java Virtual Machine', 'Java Version Manager', 'Java Variable Method'], correctIndex: 1 },
+    { question: 'Which access modifier makes a member visible only within its class?', options: ['public', 'protected', 'private', 'default'], correctIndex: 2 },
+    { question: 'What is the parent class of all Java classes?', options: ['Main', 'Object', 'Base', 'Super'], correctIndex: 1 },
+    { question: 'Which collection maintains insertion order?', options: ['HashSet', 'TreeMap', 'ArrayList', 'HashMap'], correctIndex: 2 },
+    { question: 'What does OOP stand for?', options: ['Object-Oriented Programming', 'Online Operation Process', 'Operational Output Program', 'Object-Origin Protocol'], correctIndex: 0 },
+    { question: 'Which loop executes at least once?', options: ['for', 'while', 'do-while', 'foreach'], correctIndex: 2 },
+    { question: 'What is Spring Boot?', options: ['A Java IDE', 'A build tool', 'A framework for microservices', 'A testing library'], correctIndex: 2 },
+    { question: 'What does the "static" keyword mean?', options: ['Variable changes constantly', 'Belongs to the class, not instance', 'Cannot be modified', 'Only accessible privately'], correctIndex: 1 },
+    { question: 'Which interface is used for database connectivity?', options: ['ODBC', 'JDBC', 'HTTP', 'FTP'], correctIndex: 1 },
+  ],
+};

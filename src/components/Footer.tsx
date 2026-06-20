@@ -17,11 +17,11 @@ export default function Footer({ setCurrentTab }: FooterProps) {
           {/* Brand block */}
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentTab('home')}>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
-                <GraduationCap className="h-5 w-5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                <img src="/logo.jpg" alt="Invigo Infotech" className="h-8 w-8 object-contain" />
               </div>
               <div>
-                <span className="font-display text-lg font-extrabold tracking-wider bg-gradient-to-r from-blue-700 to-indigo-750 bg-clip-text text-transparent">
+                <span className="font-display text-lg font-extrabold tracking-wider text-slate-800">
                   INVIGO
                 </span>
                 <span className="block text-[7px] font-mono tracking-[4px] text-blue-600 uppercase leading-none font-bold">
