@@ -132,7 +132,7 @@ export default function HomeView({
               onClick={() => setCurrentTab('internships')}
               className="px-6 py-3.5 rounded-2xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-95 shadow-md shadow-blue-500/10 transition-all flex items-center gap-2 group hover:-translate-y-0.5 cursor-pointer"
             >
-              <span>Explore 16+ Domains</span>
+              <span>Explore 30+ Domains</span>
               <ArrowRight className="h-5 w-5 text-white transition-transform duration-200 group-hover:translate-x-1" />
             </button>
             
@@ -305,7 +305,7 @@ export default function HomeView({
         {/* METRIC TICKER BLOCKS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border border-slate-200 bg-white py-6 my-8 rounded-[1.8rem] shadow-sm">
           <div className="text-center space-y-1 border-r border-slate-100 last:border-0">
-            <span className="block font-display text-2xl md:text-4xl font-extrabold text-blue-600">16+</span>
+            <span className="block font-display text-2xl md:text-4xl font-extrabold text-blue-600">30+</span>
             <span className="block text-[10px] font-mono uppercase text-slate-500 tracking-wider">Dynamic Domains</span>
           </div>
           <div className="text-center space-y-1 border-r border-slate-100 last:border-0 md:block">
@@ -379,28 +379,44 @@ export default function HomeView({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {INTERNSHIP_DOMAINS.slice(0, 5).map((domain, idx) => (
-              <div key={domain.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between group h-64 cursor-pointer" onClick={() => { setCurrentTab('internships'); setSelectedCategoryFilter('All'); setSelectedDegreeFilter('All'); }}>
-                <div className={`absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r ${domain.gradient}`} />
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold font-mono px-2 py-1 bg-slate-100 text-slate-500 rounded-md">#{idx + 1}</span>
-                    <div className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                <div key={domain.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col group h-72 cursor-pointer" onClick={() => { setCurrentTab('internships'); setSelectedCategoryFilter('All'); setSelectedDegreeFilter('All'); }}>
+                  
+                  {/* Domain Image Banner */}
+                  <div className="relative h-32 overflow-hidden shrink-0">
+                    {domain.imageUrl ? (
+                      <img 
+                        src={domain.imageUrl} 
+                        alt={domain.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br ${domain.gradient} opacity-80`} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute bottom-2 right-2 bg-amber-400 text-amber-950 px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase flex items-center gap-1 shadow-sm">
                       <Award className="h-3 w-3" /> BESTSELLER
                     </div>
                   </div>
-                  <h3 className="font-display font-extrabold text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors">{domain.title}</h3>
-                </div>
-                <div className="mt-4">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Target Audience</span>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {domain.targetDegrees.slice(0, 2).map((deg) => (
-                      <span key={deg} className="px-2 py-0.5 rounded-sm bg-slate-100 text-slate-600 text-[10px] font-bold">{deg}</span>
-                    ))}
-                    {domain.targetDegrees.length > 2 && <span className="px-2 py-0.5 rounded-sm bg-slate-50 text-slate-500 text-[10px] font-bold">+{domain.targetDegrees.length - 2}</span>}
+
+                  <div className="p-4 flex flex-col flex-1 justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 bg-slate-100 text-slate-500 rounded">#{idx + 1}</span>
+                      </div>
+                      <h3 className="font-display font-extrabold text-slate-800 text-base leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">{domain.title}</h3>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block mb-1">Target Audience</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {domain.targetDegrees.slice(0, 2).map((deg) => (
+                          <span key={deg} className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[9px] font-bold">{deg}</span>
+                        ))}
+                        {domain.targetDegrees.length > 2 && <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 text-[9px] font-bold">+{domain.targetDegrees.length - 2}</span>}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
           <div className="mt-8 text-center">
             <button onClick={() => setCurrentTab('internships')} className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700">

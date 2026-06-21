@@ -242,6 +242,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   // ═══════════════ NEW DOMAINS ═══════════════
   {
     id: 'ai_ml',
+    imageUrl: '/domain_ai_ml.png',
     title: 'AI & Machine Learning',
     category: 'Tech',
     shortDesc: 'Build intelligent systems using neural networks, deep learning frameworks, NLP pipelines, and computer vision models.',
@@ -260,6 +261,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'cybersecurity',
+    imageUrl: '/domain_cybersecurity.png',
     title: 'Cybersecurity & Ethical Hacking',
     category: 'Tech',
     shortDesc: 'Learn penetration testing, vulnerability assessment, network security protocols, and ethical hacking methodologies.',
@@ -278,6 +280,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'cloud_devops',
+    imageUrl: '/domain_cloud_devops.png',
     title: 'Cloud Computing & DevOps',
     category: 'Tech',
     shortDesc: 'Master AWS/Azure services, Docker containerization, Kubernetes orchestration, and CI/CD pipeline automation.',
@@ -296,6 +299,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'mobile_app_dev',
+    imageUrl: '/domain_mobile_app_dev.png',
     title: 'Mobile App Development',
     category: 'Tech',
     shortDesc: 'Build cross-platform mobile applications using Flutter and React Native with native device integrations.',
@@ -314,6 +318,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'iot_embedded',
+    imageUrl: '/domain_iot_embedded.png',
     title: 'IoT & Embedded Systems',
     category: 'Hardware',
     shortDesc: 'Design smart connected devices using Arduino, ESP32, Raspberry Pi with sensor networks and cloud dashboards.',
@@ -332,6 +337,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'blockchain',
+    imageUrl: '/domain_blockchain.png',
     title: 'Blockchain Development',
     category: 'Tech',
     shortDesc: 'Develop decentralized applications, smart contracts, and tokenized systems using Ethereum and Solidity.',
@@ -350,6 +356,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'ui_ux_design',
+    imageUrl: '/domain_ui_ux_design.png',
     title: 'UI/UX Design',
     category: 'Design',
     shortDesc: 'Master user experience research, wireframing, prototyping, and visual design using industry-standard tools.',
@@ -368,6 +375,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'robotics_automation',
+    imageUrl: '/domain_robotics_automation.png',
     title: 'Robotics & Automation',
     category: 'Hardware',
     shortDesc: 'Program industrial robots, design automated control systems, and build autonomous navigating machines.',
@@ -386,6 +394,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'digital_marketing',
+    imageUrl: '/domain_digital_marketing.png',
     title: 'Digital Marketing & SEO',
     category: 'Management',
     shortDesc: 'Master search engine optimization, social media marketing, Google Ads campaigns, and content strategy frameworks.',
@@ -403,6 +412,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'business_analytics',
+    imageUrl: '/domain_business_analytics.png',
     title: 'Business Analytics',
     category: 'Management',
     shortDesc: 'Transform raw business data into actionable insights using Excel, Power BI, SQL, and statistical modeling techniques.',
@@ -420,6 +430,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'financial_accounting',
+    imageUrl: '/domain_financial_accounting.png',
     title: 'Financial Accounting & Tally',
     category: 'Management',
     shortDesc: 'Master GST filing, Tally ERP, balance sheet preparation, ledger management, and tax compliance frameworks.',
@@ -437,6 +448,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'hr_management',
+    imageUrl: '/domain_hr_management.png',
     title: 'Human Resource Management',
     category: 'Management',
     shortDesc: 'Learn recruitment processes, employee engagement strategies, payroll systems, and HR analytics dashboards.',
@@ -454,6 +466,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'graphic_design',
+    imageUrl: '/domain_graphic_design.png',
     title: 'Graphic Design',
     category: 'Design',
     shortDesc: 'Create stunning visual designs, brand identities, social media graphics, and print-ready marketing materials.',
@@ -471,6 +484,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'content_writing',
+    imageUrl: '/domain_content_writing.png',
     title: 'Content Writing & Copywriting',
     category: 'Management',
     shortDesc: 'Master SEO content writing, blog creation, advertising copy, email campaigns, and technical documentation.',
@@ -488,6 +502,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'video_editing',
+    imageUrl: '/domain_video_editing.png',
     title: 'Video Editing & Production',
     category: 'Design',
     shortDesc: 'Learn professional video editing, motion graphics, color grading, and YouTube content production workflows.',
@@ -505,6 +520,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'stock_market',
+    imageUrl: '/domain_stock_market.png',
     title: 'Stock Market & Trading',
     category: 'Management',
     shortDesc: 'Understand technical analysis, fundamental analysis, derivatives trading, and portfolio management strategies.',
@@ -522,6 +538,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'vlsi_design',
+    imageUrl: '/domain_vlsi_design.png',
     title: 'VLSI Design',
     category: 'Hardware',
     shortDesc: 'Design digital circuits using Verilog/VHDL, perform logic synthesis, timing analysis, and FPGA implementations.',
@@ -540,6 +557,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'three_d_printing',
+    imageUrl: '/domain_three_d_printing.png',
     title: '3D Printing & Additive Manufacturing',
     category: 'Hardware',
     shortDesc: 'Learn FDM/SLA printing technologies, CAD model preparation, slicing optimization, and material science for additive manufacturing.',
@@ -558,6 +576,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'ecommerce',
+    imageUrl: '/domain_ecommerce.png',
     title: 'E-Commerce & Shopify',
     category: 'Management',
     shortDesc: 'Build and manage online stores using Shopify, learn product listing optimization, payment gateway integration, and order fulfillment.',
@@ -575,6 +594,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   },
   {
     id: 'supply_chain',
+    imageUrl: '/domain_supply_chain.png',
     title: 'Supply Chain Management',
     category: 'Management',
     shortDesc: 'Optimize logistics, inventory planning, vendor management, warehouse operations, and demand forecasting systems.',

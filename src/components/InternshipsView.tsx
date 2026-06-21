@@ -88,7 +88,7 @@ export default function InternshipsView({
             The Internship Core Database
           </h1>
           <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto">
-            Explore 16+ highly specialized study cohorts fully configured with industry tools, progressive phases, and certified credentials.
+            Explore 30+ highly specialized study cohorts fully configured with industry tools, progressive phases, and certified credentials.
           </p>
         </div>
 
