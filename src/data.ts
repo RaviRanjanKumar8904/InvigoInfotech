@@ -647,7 +647,7 @@ export const TESTIMONIALS = [
     degree: 'B.Tech - Computer Science',
     domain: 'AI & Machine Learning',
     content: 'Building custom convolutional networks and deploying real-time AI agents on the cloud was mind-blowing. The mentor framework at Invigo Infotech is outstanding!',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150'
+    avatar: '/indian_male_1.png'
   },
   {
     name: 'Neha Kumari',
@@ -655,7 +655,7 @@ export const TESTIMONIALS = [
     degree: 'B.Tech - Electronics',
     domain: 'Internet of Things & Smart Systems',
     content: 'We integrated sensory ESP8266 matrices with remote server dashboards using MQTT. The hands-on curriculum gave me confidence to build real hardware systems.',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?fit=crop&w=150&h=150'
+    avatar: '/indian_female_1.png'
   },
   {
     name: 'Avinash Singh',
@@ -663,7 +663,7 @@ export const TESTIMONIALS = [
     degree: 'MBA - Finance',
     domain: 'Business Analytics',
     content: 'The corporate capstone simulated real-world data-driven business decisions. This gave me direct operations portfolio experience that helped me secure my dream banking offer.',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fit=crop&w=150&h=150'
+    avatar: '/indian_male_2.png'
   },
   {
     name: 'Anjali Sharma',
@@ -671,7 +671,7 @@ export const TESTIMONIALS = [
     degree: 'Diploma - Computer Engineering',
     domain: 'Full Stack Development',
     content: 'As a Diploma student, finding rigorous practical internships is hard. Invigo provided a step-by-step roadmap from standard HTML/CSS up to deployed production database engines.',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?fit=crop&w=150&h=150'
+    avatar: '/indian_female_2.png'
   }
 ];
 
