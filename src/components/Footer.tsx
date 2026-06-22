@@ -107,17 +107,17 @@ export default function Footer({ setCurrentTab }: FooterProps) {
             <ul className="space-y-2 text-xs text-slate-600 font-medium">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-600 shrink-0" />
-                <a href="mailto:education@invigoinfotech.com" className="hover:text-blue-600 transition-colors">
-                  education@invigoinfotech.com
+                <a href="mailto:contact@invigoinfotech.in" className="hover:text-blue-600 transition-colors">
+                  contact@invigoinfotech.in
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-blue-600 shrink-0" />
-                <span>+91 91230-XXXXX</span>
+                <span>+91 62042 66080</span>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <span>Sector 62, Noida, NCR Electronic Nodes, India</span>
+                <span>Polytecnic Chok, Purnea, 854301</span>
               </li>
             </ul>
           </div>
