@@ -351,6 +351,22 @@ export default function App() {
       {/* Translucent Footer */}
       <Footer setCurrentTab={setCurrentTab} />
 
+      {/* Floating WhatsApp Overlay */}
+      <a 
+        href="https://wa.me/916204266080" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-2xl hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300 group ring-4 ring-[#25D366]/30"
+        aria-label="Contact on WhatsApp"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" className="fill-current">
+          <path d="M12.031 21.672C10.36 21.672 8.766 21.24 7.373 20.472L2 22l1.583-5.267A9.577 9.577 0 0 1 2.455 12C2.455 6.721 6.756 2.417 12.031 2.417S21.608 6.721 21.608 12s-4.302 9.672-9.577 9.672zm0-17.653c-4.404 0-7.988 3.585-7.988 7.981 0 1.57.461 3.084 1.309 4.354l-.946 3.144 3.243-.847a7.925 7.925 0 0 0 4.382 1.312c4.403 0 7.987-3.584 7.987-7.98S16.435 4.019 12.031 4.019zm4.417 11.026c-.241-.121-1.428-.705-1.648-.786-.22-.081-.381-.121-.542.121-.161.242-.622.786-.763.948-.14.161-.281.181-.522.06-1.127-.563-2.079-1.282-2.859-2.316-.201-.265-.02-.406.1-.526.108-.108.241-.282.361-.422.12-.14.161-.242.241-.403.08-.161.04-.302-.02-.423-.061-.121-.542-1.308-.743-1.792-.196-.473-.393-.409-.542-.416-.14-.008-.301-.01-.462-.01-.16 0-.422.061-.643.302-.22.242-.843.826-.843 2.015s.863 2.337.983 2.498c.12.161 1.706 2.603 4.133 3.65.577.248 1.027.396 1.378.507.579.183 1.106.157 1.52.095.467-.071 1.428-.584 1.629-1.148.201-.564.201-1.048.14-1.148-.06-.101-.22-.162-.461-.283z" />
+        </svg>
+        <span className="absolute right-16 bg-white text-slate-800 text-sm font-semibold px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+          Chat with Us
+        </span>
+      </a>
+
     </div>
   );
 }
