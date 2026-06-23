@@ -640,6 +640,24 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     } catch (err) { console.error(err); }
   };
 
+  const handleSeedAllDomains = async () => {
+    if (!confirm('Are you sure you want to seed 10 questions for ALL 31 domains? This will add up to 310 questions to the database.')) return;
+    let totalSeeded = 0;
+    try {
+      for (const domain of allDomains) {
+        const defaults = DEFAULT_MCQ_QUESTIONS[domain.id];
+        if (defaults) {
+          for (const q of defaults) {
+            await addDoc(collection(db, 'mcqQuestions'), { domainId: domain.id, ...q });
+            totalSeeded++;
+          }
+        }
+      }
+      addLog(`Bulk seeded ${totalSeeded} default MCQ questions across all domains`, 'setting');
+      alert(`Successfully seeded ${totalSeeded} questions!`);
+    } catch (err) { console.error(err); }
+  };
+
   // Get all domains (Firestore + hardcoded merged)
   const allDomains = useMemo(() => {
     const fsIds = firestoreDomains.map(d => d.id);
@@ -2064,7 +2082,12 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
 
               {/* Quick seed buttons */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-amber-800">Quick Seed Default Questions</h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-amber-800">Quick Seed Default Questions</h4>
+                  <button onClick={handleSeedAllDomains} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg cursor-pointer transition-all shadow-sm">
+                    Seed ALL Domains
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {Object.keys(DEFAULT_MCQ_QUESTIONS).map(domainId => {
                     const existing = allQuestions.filter(q => q.domainId === domainId).length;

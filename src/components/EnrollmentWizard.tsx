@@ -38,7 +38,7 @@ export default function EnrollmentWizard({
     passingYear: currentUser?.passingYear || '2027',
     domainId: preselectedDomainId || 'ai_ml',
     durationWeeks: 8,
-    startDate: '2026-07-15',
+    startDate: new Date().toISOString().split('T')[0],
     motivation: '',
     trainingMode: 'online' as 'online' | 'offline'
   });
@@ -498,24 +498,7 @@ export default function EnrollmentWizard({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-mono uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-blue-500" />
-                          <span>Preferred Commencement Date</span>
-                        </label>
-                        <select
-                          value={formData.startDate}
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
-                        >
-                          <option value="2026-07-01">July 01, 2026 Batch Alpha</option>
-                          <option value="2026-07-15">July 15, 2026 Batch Beta</option>
-                          <option value="2026-08-01">August 01, 2026 Batch Gamma</option>
-                          <option value="2026-08-15">August 15, 2026 Batch Delta</option>
-                        </select>
-                      </div>
-
+                    <div>
                       <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-205 flex flex-col justify-between">
                         <span className="text-[10px] font-mono text-blue-600 tracking-wider font-bold">ACADEMIC ALIGNMENT STATUS:</span>
                         <p className="text-xs text-slate-600 leading-normal">

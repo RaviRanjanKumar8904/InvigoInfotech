@@ -128,13 +128,7 @@ export default function HomeView({
               <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-white transition-transform duration-200 group-hover:translate-x-1" />
             </button>
             
-            <button
-              onClick={() => setCurrentTab('enroll')}
-              className="w-full sm:w-auto px-6 py-3 sm:py-3.5 rounded-2xl font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-705 transition-all flex items-center justify-center gap-2 group hover:-translate-y-0.5 cursor-pointer shadow-sm"
-            >
-              <span>Enroll Portal</span>
-              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500 animate-pulse" />
-            </button>
+
           </div>
         </div>
 

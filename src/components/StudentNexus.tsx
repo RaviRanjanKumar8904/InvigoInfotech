@@ -217,8 +217,23 @@ export default function StudentNexus({
         where('domainId', '==', activeEnrollment.domainId));
       const unsubRes = onSnapshot(resQ, snap => {
         if (!snap.empty) {
-          // Just take the first/latest result
-          setTestResult({ id: snap.docs[0].id, ...snap.docs[0].data() });
+          // Filter by candidateId to prevent showing previous enrollment tests
+          let validDocs = snap.docs.filter(d => {
+            const data = d.data();
+            return !data.candidateId || data.candidateId === activeEnrollment.candidateId;
+          });
+
+          if (validDocs.length > 0) {
+            // Sort by timestamp descending to get latest
+            const sortedDocs = validDocs.sort((a, b) => {
+              const aTime = a.data().timestamp ? new Date(a.data().timestamp).getTime() : 0;
+              const bTime = b.data().timestamp ? new Date(b.data().timestamp).getTime() : 0;
+              return bTime - aTime;
+            });
+            setTestResult({ id: sortedDocs[0].id, ...sortedDocs[0].data() });
+          } else {
+            setTestResult(null);
+          }
         } else {
           setTestResult(null);
         }
@@ -328,7 +343,9 @@ export default function StudentNexus({
   const [certCompiled, setCertCompiled] = useState(false);
 
   // Calculate Progress Percent based on materials and test
-  const progressPercent = testResult?.passed ? 100 : Math.round((unlockedMaterials.length / Math.max(1, materials.length)) * 100);
+  const completedCount = Math.max(0, unlockedMaterials.length - 1);
+  const materialProgress = materials.length > 0 ? (completedCount / materials.length) * 95 : 0;
+  const progressPercent = testResult?.passed ? 100 : Math.round(materialProgress);
 
   const submitMCQTest = async () => {
     setIsSubmittingTest(true);
@@ -346,6 +363,7 @@ export default function StudentNexus({
         domainId: activeEnrollment.domainId,
         score,
         passed,
+        candidateId: activeEnrollment.candidateId,
         timestamp: new Date().toISOString()
       });
       
