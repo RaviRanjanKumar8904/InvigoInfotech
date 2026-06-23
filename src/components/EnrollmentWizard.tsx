@@ -7,7 +7,7 @@ import { INTERNSHIP_DOMAINS } from '../data';
 import { EnrollmentState } from '../types';
 
 import { StudentUser } from '../types';
-import { downloadOfferLetterPDF } from '../utils/pdfGenerator';
+import { downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
 
 interface EnrollmentWizardProps {
   preselectedDomainId: string;
@@ -976,7 +976,7 @@ export default function EnrollmentWizard({
             <div className="flex flex-wrap justify-center gap-4">
               <button
                 onClick={() => {
-                  alert('Your offer letter will be available for download in your dashboard once an administrator verifies your payment (typically within 24 hours).');
+                  downloadAcceptanceLetterPDF(synthesizedOffer, selectedDomainObject.title);
                 }}
                 className="px-5 py-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs sm:text-sm font-semibold flex items-center gap-1.5 text-slate-600 hover:text-slate-800 transition-all duration-150 cursor-pointer"
               >
