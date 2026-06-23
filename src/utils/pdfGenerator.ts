@@ -163,11 +163,12 @@ async function buildDocument(
   drawRotatedRect(doc, W - 15 * s, H - 60 * s, 80 * s, 25 * s, 135, blue);
 
   // Top URL
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(0, 0, 0);
-  const typeStr = opts.docType === 'Certificate' ? 'Certificate' : opts.docType === 'OfferLetter' ? 'Offer Letter' : 'Acceptance Letter';
-  doc.text(`${typeStr} Verification: https://www.invigoinfotech.in/verification    INVIGO EDUCARE PVT. LTD`, W / 2, 8, { align: 'center' });
+  if (opts.docType === 'Certificate') {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Certificate Verification: https://www.invigoinfotech.in/verification    INVIGO EDUCARE PVT. LTD`, W / 2, 8, { align: 'center' });
+  }
 
   // ─── Fetch and draw images (Bigger sizes) ───
   const logoY = 24;
