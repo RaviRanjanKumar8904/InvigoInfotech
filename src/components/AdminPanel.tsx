@@ -362,11 +362,24 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const handleVerifyPayment = async (enrollment: EnrollmentState) => {
     try {
       const docRef = doc(db, 'enrollments', enrollment.candidateId);
-      await updateDoc(docRef, { paymentVerified: true, status: 'In Progress' });
+      await updateDoc(docRef, { paymentVerified: true, paymentStatus: 'verified', status: 'In Progress' });
       addLog(`Verified payment for ${enrollment.fullName} (${enrollment.candidateId}) — course activated`, 'payment');
     } catch (err: any) {
       alert(`Payment verification error: ${err.message}`);
       addError(`Payment verify failed: ${err.message}`, 'Firestore', 'high');
+    }
+  };
+
+  const handleRejectPayment = async (enrollment: EnrollmentState) => {
+    const reason = prompt('Enter reason for rejecting payment (e.g. UTR mismatch):', 'Invalid UTR or Amount mismatch');
+    if (reason === null) return; // cancelled
+    try {
+      const docRef = doc(db, 'enrollments', enrollment.candidateId);
+      await updateDoc(docRef, { paymentVerified: false, paymentStatus: 'rejected', rejectionReason: reason });
+      addLog(`Rejected payment for ${enrollment.fullName} (${enrollment.candidateId}) - Reason: ${reason}`, 'payment');
+    } catch (err: any) {
+      alert(`Payment rejection error: ${err.message}`);
+      addError(`Payment rejection failed: ${err.message}`, 'Firestore', 'high');
     }
   };
 
@@ -410,7 +423,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       for (const id of selectedIds) {
         const item = allEnrollments.find(e => e.candidateId === id);
         if (item && !item.paymentVerified) {
-          await updateDoc(doc(db, 'enrollments', id), { paymentVerified: true, status: 'In Progress' });
+          await updateDoc(doc(db, 'enrollments', id), { paymentVerified: true, paymentStatus: 'verified', status: 'In Progress' });
           count++;
         }
       }
@@ -1188,10 +1201,23 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
 
                             {/* Payment */}
                             <td className="py-3.5 px-4">
+                              <div className="space-y-1.5 mb-2">
+                                <div className="text-[10px] font-mono text-slate-600">
+                                  Amount: <span className="font-bold text-slate-800">₹{enr.amountPaid || 'N/A'}</span>
+                                </div>
+                                <div className="text-[10px] font-mono text-slate-600">
+                                  UTR: <span className="font-bold text-slate-800 select-all">{enr.paymentTxnId || 'N/A'}</span>
+                                </div>
+                              </div>
                               {enr.paymentVerified ? (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
                                   <Check className="h-3 w-3" />
                                   Verified
+                                </span>
+                              ) : enr.paymentStatus === 'rejected' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+                                  <Clock className="h-3 w-3" />
+                                  Rejected
                                 </span>
                               ) : (
                                 <div className="space-y-1.5">
@@ -1199,12 +1225,20 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                     <Clock className="h-2.5 w-2.5" />
                                     Pending
                                   </span>
-                                  <button
-                                    onClick={() => handleVerifyPayment(enr)}
-                                    className="block px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold transition-all shadow-sm cursor-pointer active:scale-95"
-                                  >
-                                    ✓ Verify Payment
-                                  </button>
+                                  <div className="flex flex-col gap-1.5">
+                                    <button
+                                      onClick={() => handleVerifyPayment(enr)}
+                                      className="block px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                                    >
+                                      ✓ Verify Payment
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectPayment(enr)}
+                                      className="block px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[9px] font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                                    >
+                                      ✗ Reject Payment
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </td>

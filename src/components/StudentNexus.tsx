@@ -175,6 +175,10 @@ export default function StudentNexus({
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmittingTest, setIsSubmittingTest] = useState(false);
 
+  const [retryUtr, setRetryUtr] = useState('');
+  const [retryAmount, setRetryAmount] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
+
   // Material Progress (simulated via localStorage or we could use firestore)
   const [unlockedMaterials, setUnlockedMaterials] = useState<number[]>(() => {
     try {
@@ -229,6 +233,33 @@ export default function StudentNexus({
     const newUnlocked = [...unlockedMaterials, index + 1];
     setUnlockedMaterials(newUnlocked);
     localStorage.setItem(`invigo_progress_${activeEnrollment.candidateId}`, JSON.stringify(newUnlocked));
+  };
+
+  const handlePaymentRetry = async () => {
+    if (!retryUtr || !retryAmount) return;
+    setIsRetrying(true);
+    try {
+      const docRef = doc(db, 'enrollments', activeEnrollment.candidateId);
+      await updateDoc(docRef, { 
+        paymentTxnId: retryUtr.trim().toUpperCase(), 
+        amountPaid: parseFloat(retryAmount), 
+        paymentStatus: 'pending' 
+      });
+      if (onUpdateEnrollments) {
+        const updated = enrollments.map(e => e.candidateId === activeEnrollment.candidateId ? {
+          ...e,
+          paymentTxnId: retryUtr.trim().toUpperCase(),
+          amountPaid: parseFloat(retryAmount),
+          paymentStatus: 'pending'
+        } as EnrollmentState : e);
+        onUpdateEnrollments(updated);
+      }
+      setRetryUtr('');
+      setRetryAmount('');
+    } catch (e) {
+      console.error(e);
+    }
+    setIsRetrying(false);
   };
 
   // Mentorship Meeting state
@@ -451,6 +482,67 @@ export default function StudentNexus({
       setTimeout(() => {
         setSaveSuccess(false);
       }, 3000);
+    };
+
+    const isDurationComplete = (startDate: string, durationWeeks: number): boolean => {
+      if (!startDate) return false;
+      const start = new Date(startDate);
+      const end = new Date(start.getTime() + durationWeeks * 7 * 24 * 60 * 60 * 1000);
+      return new Date() >= end;
+    };
+
+    const renderPaymentPending = () => {
+      if (activeEnrollment.paymentStatus === 'rejected') {
+        return (
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center space-y-4">
+            <XCircle className="h-12 w-12 text-rose-600 mx-auto" />
+            <h3 className="text-xl font-bold text-rose-800">Payment Verification Failed</h3>
+            <p className="text-sm text-rose-600 max-w-md mx-auto">
+              Reason: {activeEnrollment.rejectionReason || 'Invalid UTR or Amount mismatch'}
+            </p>
+            <div className="bg-white p-6 rounded-xl shadow-sm text-left max-w-sm mx-auto space-y-4 border border-rose-100">
+              <h4 className="font-bold text-sm text-slate-800">Resubmit Payment Details</h4>
+              <div className="space-y-2 text-xs">
+                <label className="font-semibold text-slate-600">Correct Amount Paid (₹)</label>
+                <input 
+                  type="number" 
+                  value={retryAmount} 
+                  onChange={e => setRetryAmount(e.target.value)} 
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="e.g. 792"
+                />
+              </div>
+              <div className="space-y-2 text-xs">
+                <label className="font-semibold text-slate-600">Correct 12-Digit UTR No.</label>
+                <input 
+                  type="text" 
+                  value={retryUtr} 
+                  onChange={e => setRetryUtr(e.target.value)} 
+                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="e.g. 123456789012"
+                />
+              </div>
+              <button 
+                onClick={handlePaymentRetry}
+                disabled={isRetrying || !retryAmount || !retryUtr}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 rounded-lg transition-all cursor-pointer"
+              >
+                {isRetrying ? 'Submitting...' : 'Submit for Verification'}
+              </button>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center space-y-4 mt-6">
+          <Clock className="h-12 w-12 text-amber-500 mx-auto" />
+          <h3 className="text-xl font-bold text-amber-800">Payment Verification Pending</h3>
+          <p className="text-sm text-amber-700 max-w-md mx-auto">
+            Your payment details have been recorded and are currently under review by our administrative team. 
+            Course materials and certificates will be unlocked automatically once verification is complete.
+          </p>
+        </div>
+      );
     };
 
     if (!hasEnrolled || !activeEnrollment) {
@@ -747,6 +839,8 @@ export default function StudentNexus({
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
+              {!activeEnrollment.paymentVerified ? renderPaymentPending() : (
+                <>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-blue-600" />
@@ -913,6 +1007,8 @@ export default function StudentNexus({
                   )}
                 </div>
               )}
+                </>
+              )}
             </motion.div>
           )}
 
@@ -1019,7 +1115,8 @@ export default function StudentNexus({
               animate={{ opacity: 1, y: 0 }}
               className="rounded-[1.8rem] bg-white border border-slate-200 p-6 sm:p-8 space-y-6 shadow-sm flex flex-col justify-between"
             >
-              
+              {!activeEnrollment.paymentVerified ? renderPaymentPending() : (
+                <>
               <div className="border-b border-slate-200 pb-4">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Award className="h-5.5 w-5.5 text-blue-600" />
@@ -1030,7 +1127,7 @@ export default function StudentNexus({
                 </p>
               </div>
 
-              {progressPercent < 100 && !activeEnrollment.certificateIssued ? (
+              {((!isDurationComplete(activeEnrollment.startDate, activeEnrollment.durationWeeks) || progressPercent < 100) && !activeEnrollment.certificateIssued) ? (
                 <div className="space-y-6">
                   {/* Lock Screen / Progress Needed layout */}
                   <div className="space-y-3.5">
@@ -1066,9 +1163,9 @@ export default function StudentNexus({
                       🎓
                     </div>
                     <div>
-                      <h4 className="font-bold text-amber-800 text-sm">Complete Your Assignments to Unlock</h4>
+                      <h4 className="font-bold text-amber-800 text-sm">Complete Your Duration & Assignments to Unlock</h4>
                       <p className="text-slate-600 text-xs max-w-sm mx-auto mt-1 leading-relaxed">
-                        Complete all {materials.length} study materials and pass the final MCQ assessment with a score of 60% or higher to become eligible for your verified internship certificate.
+                        Wait for your internship duration of {activeEnrollment.durationWeeks} weeks to complete. Also complete all {materials.length} study materials and pass the final MCQ assessment with a score of 60% or higher to become eligible for your verified internship certificate.
                       </p>
                     </div>
                   </div>
@@ -1194,6 +1291,8 @@ export default function StudentNexus({
 
                   </div>
                 )
+              )}
+                </>
               )}
 
             </motion.div>

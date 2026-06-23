@@ -51,6 +51,8 @@ export interface EnrollmentState {
   amountPaid?: number;
   paymentTxnId?: string;
   paymentVerified?: boolean;
+  paymentStatus?: 'pending' | 'verified' | 'rejected';
+  rejectionReason?: string;
   certificateIssued?: boolean;
   certificateDate?: string;
   blocked?: boolean;

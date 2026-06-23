@@ -160,6 +160,7 @@ export default function EnrollmentWizard({
         amountPaid: finalAmount,
         paymentTxnId: txnId,
         paymentVerified: false,
+        paymentStatus: 'pending',
         certificateIssued: false
       };
       
