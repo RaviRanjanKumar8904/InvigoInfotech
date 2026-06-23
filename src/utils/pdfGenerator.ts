@@ -122,8 +122,9 @@ async function buildDocument(
     docType: 'Certificate' | 'OfferLetter' | 'AcceptanceLetter';
   }
 ) {
-  const W = 297;
-  const H = 210;
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const isLandscape = W > H;
   const CX = W / 2;
 
   // White background
@@ -169,21 +170,23 @@ async function buildDocument(
 
   // ─── Fetch and draw images (Bigger sizes) ───
   const logoY = 24;
+  const startX = isLandscape ? 45 : 15;
+  const gap = isLandscape ? 50 : 38;
 
   const msmeImg = await getBase64ImageFromUrl('/msme_logo.png');
-  if (msmeImg) doc.addImage(msmeImg, 'PNG', 45, logoY - 4, 40, 20);
+  if (msmeImg) doc.addImage(msmeImg, 'PNG', startX, logoY - 4, isLandscape ? 40 : 32, isLandscape ? 20 : 16);
 
   const mcaImg = await getBase64ImageFromUrl('/MInistory_of_corporate_affairs.jpeg');
-  if (mcaImg) doc.addImage(mcaImg, 'JPEG', 100, logoY - 7, 26, 26);
+  if (mcaImg) doc.addImage(mcaImg, 'JPEG', startX + gap, logoY - 7, isLandscape ? 26 : 22, isLandscape ? 26 : 22);
 
   const isoImg = await getBase64ImageFromUrl('/ISO_Logo.png');
-  if (isoImg) doc.addImage(isoImg, 'PNG', 145, logoY - 5, 24, 24);
+  if (isoImg) doc.addImage(isoImg, 'PNG', startX + gap*2 - (isLandscape?0:2), logoY - 5, isLandscape ? 24 : 20, isLandscape ? 24 : 20);
 
   const dpiitImg = await getBase64ImageFromUrl('/DPIIT_startup_india.png');
-  if (dpiitImg) doc.addImage(dpiitImg, 'PNG', 185, logoY - 2, 45, 16);
+  if (dpiitImg) doc.addImage(dpiitImg, 'PNG', startX + gap*3 - (isLandscape?0:5), logoY - 2, isLandscape ? 45 : 35, isLandscape ? 16 : 12);
 
   const invigoLogoImg = await getBase64ImageFromUrl('/logo.jpg');
-  if (invigoLogoImg) doc.addImage(invigoLogoImg, 'JPEG', 245, logoY - 5, 22, 22);
+  if (invigoLogoImg) doc.addImage(invigoLogoImg, 'JPEG', startX + gap*4 - (isLandscape?0:5), logoY - 5, isLandscape ? 22 : 18, isLandscape ? 22 : 18);
 
   // ─── Title ───
   doc.setFont('helvetica', 'bold');
@@ -192,12 +195,13 @@ async function buildDocument(
   const titleText = opts.docType === 'Certificate' ? 'Certificate of Completion' : 
                     opts.docType === 'OfferLetter' ? 'Internship Offer Letter' : 
                     'Internship Acceptance Letter';
-  doc.text(titleText, W / 2, 65, { align: 'center' });
+  doc.text(titleText, W / 2, isLandscape ? 65 : 75, { align: 'center' });
 
   // ─── Auto-Wrapping Body Text ───
   const FS = 13;
   const LS = 11; 
-  let y = 85;
+  let y = isLandscape ? 85 : 95;
+  const maxW = isLandscape ? 210 : 150;
 
   const startFmt  = formatDate(opts.startDate);
   const endFmt    = getEndDate(opts.startDate, opts.durationWeeks);
@@ -311,18 +315,19 @@ async function buildDocument(
     ];
   }
 
-  y = wrapAndCenterText(bodyParagraph, y, LS, 210);
+  y = wrapAndCenterText(bodyParagraph, y, LS, maxW);
 
   // ─── Footer ───
   y += 20;
-  const issuedFmt = opts.docType === 'Certificate' ? endFmt : formatDate(opts.issuedDate);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(0, 0, 0);
-  
-  doc.text('Issued on ' + issuedFmt, CX, y - 18, { align: 'center' });
 
   if (opts.docType === 'Certificate') {
+    const issuedFmt = endFmt;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text('Issued on ' + issuedFmt, CX, y - 18, { align: 'center' });
+
     const sealImg = await getBase64ImageFromUrl('/Congrat_batch.png');
     if (sealImg) {
       doc.addImage(sealImg, 'PNG', CX + 45, y - 29, 18, 18);
@@ -344,26 +349,33 @@ async function buildDocument(
   doc.setTextColor(0, 0, 0);
   doc.text('Founder ( Invigo Infotech )', 55, bottomY + 8, { align: 'center' });
 
-  // Purnea Stamp perfectly centered
-  const stampImg = await getBase64ImageFromUrl('/Stamp.png');
-  if (stampImg) {
-    doc.addImage(stampImg, 'PNG', CX - 18, bottomY - 22, 36, 36);
-  }
+  if (opts.docType === 'Certificate') {
+    // Purnea Stamp perfectly centered
+    const stampImg = await getBase64ImageFromUrl('/Stamp.png');
+    if (stampImg) {
+      doc.addImage(stampImg, 'PNG', CX - 18, bottomY - 22, 36, 36);
+    }
 
-  // QR Code
-  const qrX = W - 105;
-  const qrImg = await getBase64ImageFromUrl('/Certificate_Verification_qr.jpeg');
-  if (qrImg) {
-    doc.addImage(qrImg, 'JPEG', qrX, bottomY - 20, 24, 24);
+    // QR Code
+    const qrX = W - 105;
+    const qrImg = await getBase64ImageFromUrl('/Certificate_Verification_qr.jpeg');
+    if (qrImg) {
+      doc.addImage(qrImg, 'JPEG', qrX, bottomY - 20, 24, 24);
+    } else {
+      drawQRCode(doc, qrX, bottomY - 20, 24, opts.certNo);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Certificate no: ' + opts.certNo, qrX + 12, bottomY + 10, { align: 'center' });
   } else {
-    drawQRCode(doc, qrX, bottomY - 20, 24, opts.certNo);
+    // Offer / Acceptance letter footer without stamp/QR
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Reference ID: ' + opts.certNo, W - 60, bottomY + 8, { align: 'center' });
   }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  const refText = opts.docType === 'Certificate' ? 'Certificate no: ' : 'Reference ID: ';
-  doc.text(refText + opts.certNo, qrX + 12, bottomY + 10, { align: 'center' });
 }
 
 // ═══════════════════════════════════════════════
@@ -429,7 +441,7 @@ export async function downloadCertificatePDF(cert: EnrollmentState, domainTitle:
 // OFFER LETTER PDF
 // ═══════════════════════════════════════════════
 export async function downloadOfferLetterPDF(offer: EnrollmentState, domainTitle: string): Promise<void> {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const regNo = offer.registrationNo || offer.candidateId;
   const issuedDate = offer.enrollmentDate
     ? (() => {
@@ -458,7 +470,7 @@ export async function downloadOfferLetterPDF(offer: EnrollmentState, domainTitle
 // ACCEPTANCE LETTER PDF
 // ═══════════════════════════════════════════════
 export async function downloadAcceptanceLetterPDF(enrollment: EnrollmentState, domainTitle: string): Promise<void> {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const regNo = enrollment.registrationNo || enrollment.candidateId;
   const issuedDate = enrollment.enrollmentDate
     ? (() => {
