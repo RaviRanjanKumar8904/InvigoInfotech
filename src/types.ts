@@ -37,6 +37,7 @@ export interface Coupon {
   code: string;
   discountPercent: number;
   active: boolean;
+  expiresAt?: string; // ISO date string or YYYY-MM-DD
 }
 
 export interface EnrollmentState {

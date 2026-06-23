@@ -106,11 +106,16 @@ export default function EnrollmentWizard({
       let found: Coupon | null = null;
       querySnapshot.forEach((doc) => {
         const c = doc.data() as Coupon;
-        if (c.code.toUpperCase() === couponCodeInput.trim().toUpperCase() && c.active) {
+        if (c.code.toUpperCase() === couponCodeInput.trim().toUpperCase()) {
           found = c;
         }
       });
       if (found) {
+        if (!found.active || (found.expiresAt && new Date(found.expiresAt) < new Date())) {
+          setCouponError('Invalid or expired coupon code.');
+          setAppliedCoupon(null);
+          return;
+        }
         // Fetch all past enrollments for this user
         const enrollmentsRef = collection(db, 'enrollments');
         const q = query(enrollmentsRef, where('email', '==', formData.email.toLowerCase()));

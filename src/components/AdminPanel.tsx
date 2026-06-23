@@ -172,7 +172,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // Coupons
   const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
   const [showAddCouponModal, setShowAddCouponModal] = useState(false);
-  const [newCoupon, setNewCoupon] = useState({ code: '', discountPercent: 33, active: true });
+  const [newCoupon, setNewCoupon] = useState({ code: '', discountPercent: 33, active: true, expiresAt: '' });
 
   // ─── Load enrollments from Firestore ───
   useEffect(() => {
@@ -727,16 +727,22 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // ─── Coupons CRUD ───
   const handleAddCoupon = async () => {
     if (!newCoupon.code.trim()) return;
+  const handleAddCoupon = async () => {
+    if (!newCoupon.code.trim()) return;
     try {
       const code = newCoupon.code.toUpperCase().trim();
-      await setDoc(doc(db, 'coupons', code), {
+      const couponData: any = {
         code,
         discountPercent: newCoupon.discountPercent,
         active: newCoupon.active
-      });
+      };
+      if (newCoupon.expiresAt) {
+        couponData.expiresAt = newCoupon.expiresAt;
+      }
+      await setDoc(doc(db, 'coupons', code), couponData);
       addLog(`Added new coupon: ${code} (${newCoupon.discountPercent}%)`, 'setting');
       setShowAddCouponModal(false);
-      setNewCoupon({ code: '', discountPercent: 33, active: true });
+      setNewCoupon({ code: '', discountPercent: 33, active: true, expiresAt: '' });
     } catch (err) { console.error(err); }
   };
 
@@ -2245,22 +2251,26 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     <thead><tr className="bg-slate-50 border-b border-slate-200">
                       <th className="text-left px-4 py-3 font-bold text-slate-600">Coupon Code</th>
                       <th className="text-center px-4 py-3 font-bold text-slate-600">Discount (%)</th>
+                      <th className="text-center px-4 py-3 font-bold text-slate-600">Expires At</th>
                       <th className="text-center px-4 py-3 font-bold text-slate-600">Status</th>
                       <th className="text-right px-4 py-3 font-bold text-slate-600">Actions</th>
                     </tr></thead>
                     <tbody>
-                      {allCoupons.map(coupon => (
+                      {allCoupons.map(coupon => {
+                        const isExpired = coupon.expiresAt && new Date(coupon.expiresAt) < new Date();
+                        return (
                         <tr key={coupon.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="px-4 py-3 font-mono font-bold text-purple-700">{coupon.code}</td>
                           <td className="px-4 py-3 text-center font-bold text-emerald-600">{coupon.discountPercent}%</td>
+                          <td className="px-4 py-3 text-center text-slate-500">{coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleDateString() : 'Never'}</td>
                           <td className="px-4 py-3 text-center">
                             <button
                               onClick={() => handleToggleCoupon(coupon)}
                               className={`px-3 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
-                                coupon.active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                                !coupon.active ? 'bg-slate-200 text-slate-600 hover:bg-slate-300' : isExpired ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                               }`}
                             >
-                              {coupon.active ? 'Active' : 'Inactive'}
+                              {!coupon.active ? 'Inactive' : isExpired ? 'Expired' : 'Active'}
                             </button>
                           </td>
                           <td className="px-4 py-3 flex justify-end gap-2">
@@ -2269,7 +2279,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 ) : (
@@ -2771,6 +2781,15 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     type="number"
                     value={newCoupon.discountPercent}
                     onChange={(e) => setNewCoupon({ ...newCoupon, discountPercent: Number(e.target.value) })}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expiry Date (Optional)</label>
+                  <input
+                    type="date"
+                    value={newCoupon.expiresAt}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, expiresAt: e.target.value })}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
                   />
                 </div>
