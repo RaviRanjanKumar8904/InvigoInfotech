@@ -145,8 +145,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [allMaterials, setAllMaterials] = useState<StudyMaterial[]>([]);
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
   const [materialForm, setMaterialForm] = useState({
-    domainId: '', title: '', description: '', type: 'pdf' as 'pdf' | 'video',
-    url: '', order: 1
+    domainId: '', title: '', description: '', type: 'pdf' as 'pdf' | 'video' | 'video_embed',
+    url: '', embedCode: '', order: 1
   });
   const [materialDomainFilter, setMaterialDomainFilter] = useState('All');
 
@@ -584,7 +584,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
 
   // ─── Study Material CRUD ───
   const handleAddMaterial = async () => {
-    if (!materialForm.domainId || !materialForm.title || !materialForm.url) return;
+    if (!materialForm.domainId || !materialForm.title) return;
+    if (materialForm.type !== 'video_embed' && !materialForm.url) return;
+    if (materialForm.type === 'video_embed' && !materialForm.embedCode) return;
     try {
       await addDoc(collection(db, 'studyMaterials'), {
         ...materialForm,
@@ -592,7 +594,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       });
       addLog(`Added study material: ${materialForm.title} for ${materialForm.domainId}`, 'setting');
       setShowAddMaterialModal(false);
-      setMaterialForm({ domainId: '', title: '', description: '', type: 'pdf', url: '', order: 1 });
+      setMaterialForm({ domainId: '', title: '', description: '', type: 'pdf', url: '', embedCode: '', order: 1 });
     } catch (err) { console.error(err); }
   };
 
@@ -2029,7 +2031,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         <span className="uppercase font-bold">{material.type}</span>
                       </div>
                     </div>
-                    <a href={material.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 hover:bg-blue-100">View</a>
+                    <a href={material.type === 'video_embed' ? '#' : material.url} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 hover:bg-blue-100">View</a>
                     <button onClick={() => handleRemoveMaterial(material.id)} className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 hover:bg-red-100 cursor-pointer">
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -2466,8 +2468,12 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
               <div className="p-5 space-y-3">
                 <div><label className="text-xs font-bold">Domain</label><select value={materialForm.domainId} onChange={e => setMaterialForm({...materialForm, domainId: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="">Select Domain...</option>{allDomains.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}</select></div>
                 <div><label className="text-xs font-bold">Title</label><input type="text" value={materialForm.title} onChange={e => setMaterialForm({...materialForm, title: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
-                <div><label className="text-xs font-bold">Type</label><select value={materialForm.type} onChange={e => setMaterialForm({...materialForm, type: e.target.value as any})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="pdf">PDF Document</option><option value="video">Video Link</option></select></div>
-                <div><label className="text-xs font-bold">URL</label><input type="text" value={materialForm.url} onChange={e => setMaterialForm({...materialForm, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                <div><label className="text-xs font-bold">Type</label><select value={materialForm.type} onChange={e => setMaterialForm({...materialForm, type: e.target.value as any})} className="w-full px-3 py-2 border rounded-lg text-sm"><option value="pdf">PDF Document</option><option value="video">Video Link</option><option value="video_embed">Embedded Video</option></select></div>
+                {materialForm.type === 'video_embed' ? (
+                  <div><label className="text-xs font-bold">Embed Code (HTML iframe)</label><textarea value={materialForm.embedCode} onChange={e => setMaterialForm({...materialForm, embedCode: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" rows={4} placeholder='<iframe src="..."></iframe>' /></div>
+                ) : (
+                  <div><label className="text-xs font-bold">URL</label><input type="text" value={materialForm.url} onChange={e => setMaterialForm({...materialForm, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
+                )}
                 <div><label className="text-xs font-bold">Unlock Order (e.g. 1, 2, 3)</label><input type="number" value={materialForm.order} onChange={e => setMaterialForm({...materialForm, order: Number(e.target.value)})} className="w-full px-3 py-2 border rounded-lg text-sm" /></div>
               </div>
               <div className="p-5 border-t border-slate-100 flex justify-end gap-3"><button onClick={() => setShowAddMaterialModal(false)} className="px-4 py-2 border rounded-xl font-bold text-xs">Cancel</button><button onClick={handleAddMaterial} className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-xs">Save</button></div>

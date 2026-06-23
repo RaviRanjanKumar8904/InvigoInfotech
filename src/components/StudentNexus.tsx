@@ -839,8 +839,8 @@ export default function StudentNexus({
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              {!activeEnrollment.paymentVerified ? renderPaymentPending() : (
-                <>
+              {!activeEnrollment.paymentVerified && renderPaymentPending()}
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <BookOpen className="h-5 w-5 text-blue-600" />
@@ -864,7 +864,7 @@ export default function StudentNexus({
               ) : (
                 <div className="space-y-4">
                   {materials.map((material, idx) => {
-                    const isUnlocked = unlockedMaterials.includes(idx);
+                    const isUnlocked = activeEnrollment.paymentVerified && unlockedMaterials.includes(idx);
                     const isNextToUnlock = isUnlocked && !unlockedMaterials.includes(idx + 1) && idx < materials.length;
 
                     return (
@@ -893,9 +893,18 @@ export default function StudentNexus({
                           
                           {isUnlocked ? (
                             <div className="flex gap-2 w-full sm:w-auto">
-                              <a href={material.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-colors text-center flex-1 sm:flex-none">
-                                Open Material
-                              </a>
+                              {material.type === 'video_embed' || material.type === 'video' ? (
+                                <button onClick={() => {
+                                  window.history.pushState({}, '', `/player?id=${material.id}`);
+                                  setCurrentTab('player');
+                                }} className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-colors text-center flex-1 sm:flex-none cursor-pointer">
+                                  Watch Video
+                                </button>
+                              ) : (
+                                <a href={material.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-colors text-center flex-1 sm:flex-none cursor-pointer">
+                                  Open Material
+                                </a>
+                              )}
                               {isNextToUnlock && (
                                 <button onClick={() => handleMarkMaterialComplete(idx)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center justify-center gap-1 flex-1 sm:flex-none cursor-pointer">
                                   <Check className="h-3.5 w-3.5" /> Mark Complete
@@ -915,7 +924,7 @@ export default function StudentNexus({
               )}
 
               {/* Assessment Section */}
-              {materials.length > 0 && unlockedMaterials.length >= materials.length && (
+              {activeEnrollment.paymentVerified && materials.length > 0 && unlockedMaterials.length >= materials.length && (
                 <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
                   <h4 className="font-bold text-lg text-slate-900 flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-amber-500" /> Final Domain Assessment
@@ -1007,8 +1016,7 @@ export default function StudentNexus({
                   )}
                 </div>
               )}
-                </>
-              )}
+
             </motion.div>
           )}
 

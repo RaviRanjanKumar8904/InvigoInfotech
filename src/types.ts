@@ -100,8 +100,9 @@ export interface StudyMaterial {
   domainId: string;
   title: string;
   description: string;
-  type: 'pdf' | 'video';
+  type: 'pdf' | 'video' | 'video_embed';
   url: string;
+  embedCode?: string;
   order: number;
   createdAt: string;
 }

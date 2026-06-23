@@ -16,6 +16,7 @@ const VerifyView = lazy(() => import('./components/VerifyView'));
 const AuthView = lazy(() => import('./components/AuthView'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const PlacementsView = lazy(() => import('./components/PlacementsView'));
+const VideoPlayerView = lazy(() => import('./components/VideoPlayerView'));
 
 // Lightweight loading fallback
 function PageLoader() {
@@ -37,6 +38,7 @@ export default function App() {
     if (path === '/nexus') return 'nexus';
     if (path === '/placements') return 'placements';
     if (path === '/admin') return 'admin';
+    if (path.startsWith('/player')) return 'player';
     return 'home';
   });
 
@@ -63,6 +65,7 @@ export default function App() {
       else if (path === '/nexus') setCurrentTab('nexus');
       else if (path === '/placements') setCurrentTab('placements');
       else if (path === '/admin') setCurrentTab('admin');
+      else if (path.startsWith('/player')) setCurrentTab('player');
       else setCurrentTab('home');
     };
     window.addEventListener('popstate', handlePopState);
@@ -344,6 +347,10 @@ export default function App() {
                 setCurrentTab={setCurrentTab}
               />
             )
+          )}
+
+          {currentTab === 'player' && (
+             <VideoPlayerView setCurrentTab={setCurrentTab} />
           )}
         </Suspense>
       </main>
