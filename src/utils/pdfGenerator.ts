@@ -295,7 +295,7 @@ async function buildCertificate(
 
   // ─── Footer ───
   y += 20; // Margin before footer elements
-  const issuedFmt = formatDate(opts.issuedDate);
+  const issuedFmt = endFmt; // Issue date is the same as completion date
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(0, 0, 0);
