@@ -16,11 +16,22 @@ export interface ManualCertData {
 // ─── Image Cache ───
 const imageCache: Record<string, string> = {};
 
-async function getBase64ImageFromUrl(url: string): Promise<string | null> {
+async function getBase64ImageFromUrl(path: string): Promise<string | null> {
+  const base = import.meta.env.BASE_URL || '/';
+  const url = `${base}${path.startsWith('/') ? path.slice(1) : path}`;
+  
   if (imageCache[url]) return imageCache[url];
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn('Failed to load image: response not ok', url);
+      return null;
+    }
+    const contentType = res.headers.get('content-type');
+    if (contentType && !contentType.startsWith('image/')) {
+      console.warn('URL did not return an image', url, contentType);
+      return null;
+    }
     const blob = await res.blob();
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
