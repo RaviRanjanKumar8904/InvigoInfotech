@@ -85,232 +85,228 @@ export function downloadCertificatePDF(cert: EnrollmentState, domainTitle: strin
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, W, H, 'F');
 
-  // ─── Colored corner stripes (matching reference) ───
-  // Top-left corner stripes
-  doc.setFillColor(220, 38, 38); // red
-  doc.rect(0, 0, 5, 55, 'F');
-  doc.setFillColor(34, 197, 94); // green
-  doc.rect(7, 0, 5, 45, 'F');
-  doc.setFillColor(234, 179, 8); // yellow
-  doc.rect(14, 0, 5, 35, 'F');
-  doc.setFillColor(59, 130, 246); // blue
-  doc.rect(21, 5, 4, 25, 'F');
+  const drawPoly = (pts: [number, number][], color: [number, number, number]) => {
+    doc.setFillColor(...color);
+    if (pts.length === 3) {
+      doc.triangle(pts[0][0], pts[0][1], pts[1][0], pts[1][1], pts[2][0], pts[2][1], 'F');
+    } else if (pts.length === 4) {
+      doc.triangle(pts[0][0], pts[0][1], pts[1][0], pts[1][1], pts[2][0], pts[2][1], 'F');
+      doc.triangle(pts[0][0], pts[0][1], pts[2][0], pts[2][1], pts[3][0], pts[3][1], 'F');
+    }
+  };
 
-  // Bottom-left corner stripes
-  doc.setFillColor(220, 38, 38);
-  doc.rect(0, H - 55, 5, 55, 'F');
-  doc.setFillColor(34, 197, 94);
-  doc.rect(7, H - 45, 5, 45, 'F');
-  doc.setFillColor(234, 179, 8);
-  doc.rect(14, H - 35, 5, 35, 'F');
-  doc.setFillColor(59, 130, 246);
-  doc.rect(21, H - 25, 4, 25, 'F');
+  // ─── Diagonal Corner Ribbons ───
+  // Top-Left
+  drawPoly([[0, 0], [50, 0], [0, 50]], [90, 168, 62]); // Green
+  drawPoly([[55, 0], [70, 0], [0, 70], [0, 55]], [241, 188, 24]); // Yellow
+  drawPoly([[75, 0], [105, 0], [0, 105], [0, 75]], [228, 28, 25]); // Red
+  drawPoly([[10, 105], [40, 75], [85, 120], [55, 150]], [54, 115, 203]); // Blue
 
-  // Top-right corner stripes
-  doc.setFillColor(220, 38, 38);
-  doc.rect(W - 5, 0, 5, 55, 'F');
-  doc.setFillColor(34, 197, 94);
-  doc.rect(W - 12, 0, 5, 45, 'F');
-  doc.setFillColor(234, 179, 8);
-  doc.rect(W - 19, 0, 5, 35, 'F');
-  doc.setFillColor(59, 130, 246);
-  doc.rect(W - 25, 5, 4, 25, 'F');
-
-  // Bottom-right corner stripes
-  doc.setFillColor(234, 179, 8);
-  doc.rect(W - 5, H - 55, 5, 55, 'F');
-  doc.setFillColor(34, 197, 94);
-  doc.rect(W - 12, H - 45, 5, 45, 'F');
-  doc.setFillColor(220, 38, 38);
-  doc.rect(W - 19, H - 35, 5, 35, 'F');
-  doc.setFillColor(59, 130, 246);
-  doc.rect(W - 25, H - 25, 4, 25, 'F');
+  // Bottom-Right
+  drawPoly([[W, H], [W - 50, H], [W, H - 50]], [241, 188, 24]); // Yellow
+  drawPoly([[W - 55, H], [W - 70, H], [W, H - 70], [W, H - 55]], [90, 168, 62]); // Green
+  drawPoly([[W - 75, H], [W - 105, H], [W, H - 105], [W, H - 75]], [54, 115, 203]); // Blue
+  drawPoly([[W - 10, H - 105], [W - 40, H - 75], [W - 85, H - 120], [W - 55, H - 150]], [228, 28, 25]); // Red
 
   // ─── Inner border frame ───
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
-  doc.roundedRect(28, 10, W - 56, H - 20, 8, 8, 'S');
+  doc.roundedRect(15, 15, W - 30, H - 30, 15, 15, 'S');
 
   // ─── Verification URL at top ───
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(37, 99, 235);
-  doc.text('Certificate Verification: https://www.invigoinfotech.in/verification', W / 2, 7, { align: 'center' });
+  doc.setTextColor(15, 23, 42);
+  doc.text('Certificate Verification: https://www.invigoinfotech.in/verification    INVIGO EDUCARE PVT. LTD', W / 2, 10, { align: 'center' });
 
   // ─── Top logos row ───
-  // MSME Logo placeholder
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(0, 100, 0);
-  doc.text('MSME', 55, 25);
-  doc.setFontSize(5);
-  doc.setTextColor(80, 80, 80);
-  doc.text('MICRO, SMALL & MEDIUM', 48, 29);
-  doc.text('ENTERPRISES', 53, 32);
+  const logoY = 32;
   
-  // National Internship Portal placeholder
+  // MSME
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6);
-  doc.setTextColor(180, 0, 0);
-  doc.text('NATIONAL', 110, 23);
-  doc.text('INTERNSHIP', 108, 27);
-  doc.text('PORTAL', 112, 31);
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text('MSME', 65, logoY);
+  doc.setFontSize(5);
+  doc.text('MICRO, SMALL & MEDIUM ENTERPRISES', 65, logoY + 4, { align: 'center' });
+
+  // Ministry of Corporate Affairs
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  doc.text('MINISTRY OF', 115, logoY - 2, { align: 'center' });
+  doc.text('CORPORATE AFFAIRS', 115, logoY + 2, { align: 'center' });
 
   // ISO Certified badge
   doc.setDrawColor(37, 99, 235);
   doc.setLineWidth(0.8);
-  doc.circle(165, 26, 8, 'S');
+  doc.circle(165, logoY, 10, 'S');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(5);
   doc.setTextColor(37, 99, 235);
-  doc.text('CERTIFIED', 165, 23, { align: 'center' });
-  doc.setFontSize(8);
-  doc.text('ISO', 165, 27, { align: 'center' });
+  doc.text('CERTIFIED', 165, logoY - 3, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text('ISO', 165, logoY + 2, { align: 'center' });
   doc.setFontSize(5);
-  doc.text('9001:2015', 165, 30, { align: 'center' });
+  doc.text('9001:2015', 165, logoY + 6, { align: 'center' });
 
-  // Invigo Infotech logo placeholder (right side)
+  // DPIIT #startupindia
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  doc.text('DPIIT', 215, logoY - 1, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setTextColor(234, 88, 12);
+  doc.text('#startupindia', 215, logoY + 4, { align: 'center' });
+
+  // Invigo Infotech
+  doc.setFillColor(30, 58, 138);
+  doc.circle(265, logoY - 3, 6, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
   doc.setTextColor(30, 58, 138);
-  doc.text('invigo', 228, 25);
-  doc.setFontSize(5);
-  doc.setTextColor(37, 99, 235);
-  doc.text('INFOTECH', 228, 29);
+  doc.text('INVIGO', 265, logoY + 5, { align: 'center' });
+  doc.setFontSize(6);
+  doc.text('INFOTECH', 265, logoY + 8, { align: 'center' });
 
   // ─── Title ───
-  doc.setFont('times', 'bolditalic');
-  doc.setFontSize(28);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Certificate of Completion', W / 2, 58, { align: 'center' });
-
-  // ─── Decorative line under title ───
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.3);
-  doc.line(W / 2 - 50, 62, W / 2 + 50, 62);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Certificate of Completion', W / 2, 70, { align: 'center' });
 
   // ─── Certificate body text ───
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(51, 65, 85);
-  doc.text('This is to Certify that', W / 2, 76, { align: 'center' });
-  
-  // Student name (bold)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.setTextColor(15, 23, 42);
-  doc.text(cert.fullName, W / 2, 88, { align: 'center' });
-
-  // Underline under name
-  const nameWidth = doc.getTextWidth(cert.fullName);
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.3);
-  doc.line(W / 2 - nameWidth / 2, 90, W / 2 + nameWidth / 2, 90);
-
-  // College name
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(51, 65, 85);
-  doc.text(`of ${cert.collegeName}`, W / 2, 99, { align: 'center' });
-
-  // Completion details
-  doc.text('has successfully completed a', W / 2, 108, { align: 'center' });
-
-  // Duration and mode
-  doc.setFont('helvetica', 'bold');
+  let startY = 90;
+  const lineSpacing = 10;
   doc.setFontSize(12);
-  doc.setTextColor(15, 23, 42);
-  const modeText = cert.trainingMode === 'offline' ? 'Offline' : 'Online';
-  doc.text(`${getDurationText(cert.durationWeeks)} ${modeText} Internship`, W / 2, 117, { align: 'center' });
 
-  // Domain
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(51, 65, 85);
-  doc.text('program on', W / 2, 125, { align: 'center' });
+  const drawMixedText = (texts: {text: string, bold?: boolean}[], y: number) => {
+    let currentX = W / 2;
+    let totalWidth = 0;
+    texts.forEach(item => {
+      doc.setFont('helvetica', item.bold ? 'bold' : 'normal');
+      totalWidth += doc.getTextWidth(item.text);
+    });
+    
+    let xOffset = currentX - (totalWidth / 2);
+    texts.forEach(item => {
+      doc.setFont('helvetica', item.bold ? 'bold' : 'normal');
+      doc.text(item.text, xOffset, y);
+      xOffset += doc.getTextWidth(item.text);
+    });
+  };
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(30, 58, 138);
-  doc.text(`"${domainTitle}"`, W / 2, 134, { align: 'center' });
-
-  // Duration dates
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(51, 65, 85);
-  doc.text('during', W / 2, 142, { align: 'center' });
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
+  const regNoStr = cert.registrationNo || cert.candidateId;
   const startFormatted = formatDate(cert.startDate);
   const endFormatted = getEndDate(cert.startDate, cert.durationWeeks);
-  doc.text(`( ${startFormatted} - ${endFormatted} )`, W / 2, 149, { align: 'center' });
+  const modeText = cert.trainingMode === 'offline' ? 'Offline' : 'Online';
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(51, 65, 85);
-  doc.text('in  Invigo Infotech.', W / 2, 156, { align: 'center' });
-
-  // Performance note
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text('We found candidate sincere, hardworking, technically sound & result oriented', W / 2, 164, { align: 'center' });
+  // Body text based strictly on provided image
+  drawMixedText([
+    { text: 'This is Certify that ' },
+    { text: cert.fullName + ', ', bold: true },
+    { text: 'Reg no- ' },
+    { text: regNoStr + ' ', bold: true },
+    { text: 'of ' }
+  ], startY);
   
+  startY += lineSpacing;
+  drawMixedText([
+    { text: cert.collegeName + ' ', bold: true },
+    { text: 'has' }
+  ], startY);
+
+  startY += lineSpacing;
+  drawMixedText([
+    { text: 'successfully completed a ' },
+    { text: `${cert.durationWeeks} Weeks ${modeText} Training `, bold: true },
+    { text: 'program on ' },
+    { text: `"${domainTitle}" `, bold: true },
+    { text: 'during ' },
+    { text: '( ', bold: true }
+  ], startY);
+
+  startY += lineSpacing;
+  drawMixedText([
+    { text: `${startFormatted}- ${endFormatted} ) `, bold: true },
+    { text: 'in ' },
+    { text: 'Invigo Infotech', bold: true },
+    { text: '. We found candidate sincere,' }
+  ], startY);
+
+  startY += lineSpacing;
   const scoreText = cert.testScore && cert.testScore >= 80 ? 'Excellent' : cert.testScore && cert.testScore >= 60 ? 'Good' : 'Good';
-  doc.text(`and Score `, W / 2 - 15, 170, { align: 'center' });
-  doc.setFont('helvetica', 'bold');
-  doc.text(scoreText, W / 2 + 5, 170, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.text(' in Assessment test.', W / 2 + 30, 170, { align: 'center' });
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.text('We wish all the best for future endeavors.', W / 2, 177, { align: 'center' });
+  drawMixedText([
+    { text: 'hardworking, technically sound & result oriented and Score ' },
+    { text: scoreText, bold: true },
+    { text: ' in Assessment test.' }
+  ], startY);
 
-  // ─── Issue date ───
+  startY += lineSpacing;
+  drawMixedText([
+    { text: 'We wish all the best for future endeavors.' }
+  ], startY);
+
+  startY += 18;
+  // ─── Issue date & Seal ───
   const certDate = cert.certificateDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Issued on ${certDate}`, 75, 190);
+  doc.setFontSize(14);
+  doc.text(`Issued on ${certDate}`, W / 2 - 25, startY, { align: 'center' });
 
-  // ─── Company stamp area ───
-  doc.setDrawColor(30, 58, 138);
-  doc.setLineWidth(0.5);
-  doc.circle(148, 193, 10, 'S');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(5);
-  doc.setTextColor(30, 58, 138);
-  doc.text('INVIGO INFOTECH', 148, 192, { align: 'center' });
-  doc.text('PURNEA', 148, 196, { align: 'center' });
+  // Ribbon seal
+  const sealX = W / 2 + 35;
+  const sealY = startY - 3;
+  drawPoly([[sealX - 8, sealY + 8], [sealX - 15, sealY + 22], [sealX - 3, sealY + 18]], [234, 179, 8]);
+  drawPoly([[sealX + 8, sealY + 8], [sealX + 15, sealY + 22], [sealX + 3, sealY + 18]], [234, 179, 8]);
+  doc.setFillColor(220, 38, 38);
+  doc.circle(sealX, sealY, 9, 'F');
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.6);
+  doc.circle(sealX, sealY, 7, 'S');
 
-  // ─── QR Code ───
-  drawQRCode(doc, 208, 183, 18, cert.candidateId);
+  const bottomY = H - 25;
 
   // ─── Founder signature ───
-  // Signature line
-  doc.setDrawColor(120, 120, 120);
+  doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
-  doc.line(45, 198, 105, 198);
+  doc.line(30, bottomY, 90, bottomY);
 
-  // Signature text
   doc.setFont('times', 'italic');
-  doc.setFontSize(12);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Priyanshu Kumar', 50, 196);
+  doc.setFontSize(24);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Priyanshu kumar', 40, bottomY - 5);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Founder ( Invigo Infotech )', 50, 203);
+  doc.setFontSize(12);
+  doc.text('Founder ( Invigo Infotech )', 60, bottomY + 6, { align: 'center' });
+
+  // ─── Company stamp ───
+  const stampX = 130;
+  const stampY = bottomY - 15;
+  doc.setDrawColor(30, 58, 138);
+  doc.setLineWidth(0.5);
+  doc.circle(stampX, stampY, 15, 'S');
+  doc.circle(stampX, stampY, 11, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6);
+  doc.setTextColor(30, 58, 138);
+  doc.text('* INVIGO INFOTECH *', stampX, stampY - 12, { align: 'center' });
+  doc.text('* PURNEA *', stampX, stampY + 14, { align: 'center' });
+  doc.setFontSize(5);
+  doc.text('INVIGO', stampX, stampY, { align: 'center' });
+  doc.text('INFOTECH', stampX, stampY + 4, { align: 'center' });
+
+  // ─── QR Code ───
+  drawQRCode(doc, 190, bottomY - 26, 25, cert.candidateId);
 
   // ─── Certificate number ───
+  const shortYear = certDate.match(/\d{4}/)?.[0]?.slice(2) || new Date().getFullYear().toString().slice(2);
+  const certNumber = `${shortYear}IN${regNoStr}`;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Certificate no: ${cert.candidateId}`, 195, 203);
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Certificate no: ${certNumber}`, 180, bottomY + 6);
 
   // Save
   doc.save(`Certificate_InvigoInfotech_${cert.fullName.replace(/\s+/g, '_')}.pdf`);

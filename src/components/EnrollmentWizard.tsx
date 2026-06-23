@@ -31,6 +31,7 @@ export default function EnrollmentWizard({
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
     collegeName: currentUser?.collegeName || '',
+    registrationNo: currentUser?.registrationNo || '',
     degree: (currentUser?.degree || 'B.Tech') as 'B.Tech' | 'Diploma' | 'BCA' | 'B.Sc' | 'MBA' | 'BA' | 'B.Com',
     fieldOfStudy: currentUser?.fieldOfStudy || '',
     currentYear: currentUser?.currentYear || '3rd Year',
@@ -63,6 +64,7 @@ export default function EnrollmentWizard({
         email: currentUser.email,
         phone: currentUser.phone,
         collegeName: currentUser.collegeName || prev.collegeName,
+        registrationNo: currentUser.registrationNo || prev.registrationNo,
         degree: (currentUser.degree || prev.degree) as any,
         fieldOfStudy: currentUser.fieldOfStudy || prev.fieldOfStudy,
         currentYear: currentUser.currentYear || prev.currentYear,
@@ -100,6 +102,7 @@ export default function EnrollmentWizard({
       }
     } else if (step === 2) {
       if (!formData.collegeName.trim()) tempErrors.collegeName = 'College or university name is required.';
+      if (!formData.registrationNo.trim()) tempErrors.registrationNo = 'College registration number is required.';
       if (!formData.fieldOfStudy.trim()) tempErrors.fieldOfStudy = 'Field of study or branch is required.';
       if (!formData.passingYear.trim() || isNaN(Number(formData.passingYear))) {
         tempErrors.passingYear = 'Please enter a valid graduation year.';
@@ -337,6 +340,21 @@ export default function EnrollmentWizard({
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:bg-white transition-all"
                       />
                       {errors.collegeName && <p className="text-[10px] font-mono text-rose-500">{errors.collegeName}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-mono uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <Award className="h-4 w-4 text-blue-500" />
+                        <span>College Registration Number</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 25UG010748"
+                        value={formData.registrationNo}
+                        onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:bg-white transition-all"
+                      />
+                      {errors.registrationNo && <p className="text-[10px] font-mono text-rose-500">{errors.registrationNo}</p>}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

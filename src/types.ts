@@ -4,6 +4,7 @@ export interface StudentUser {
   email: string;
   phone: string;
   collegeName?: string;
+  registrationNo?: string;
   degree?: 'B.Tech' | 'Diploma' | 'BCA' | 'B.Sc' | 'MBA' | 'BA' | 'B.Com';
   fieldOfStudy?: string;
   currentYear?: string;
@@ -36,6 +37,7 @@ export interface EnrollmentState {
   email: string;
   phone: string;
   collegeName: string;
+  registrationNo?: string;
   degree: 'B.Tech' | 'Diploma' | 'BCA' | 'B.Sc' | 'MBA' | 'BA' | 'B.Com';
   fieldOfStudy: string;
   currentYear: string; // e.g. '1st Year', '2nd Year', '3rd Year', '4th Year'
