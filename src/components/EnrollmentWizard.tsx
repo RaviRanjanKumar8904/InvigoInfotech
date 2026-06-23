@@ -886,96 +886,89 @@ export default function EnrollmentWizard({
             </div>
 
             {/* THE VISUAL OFFER LETTER BOX */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-10 relative overflow-hidden shadow-2xl">
+            <div className="rounded-2xl bg-white p-6 sm:p-10 relative overflow-hidden shadow-2xl min-h-[800px] flex flex-col">
               
-              {/* Decorative micro grids */}
-              <div className="absolute top-0 right-0 h-44 w-44 bg-slate-50 rounded-bl-[100px] border-b border-l border-slate-200 p-4 text-[9px] font-mono text-slate-400 select-none text-right">
-                BLOCKCHAIN ID // H_F09X392 <br /> STATUS // VERIFIED
+              {/* Background Ribbons */}
+              <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-100">
+                {/* Inner Border */}
+                <div className="absolute inset-3 border-[1.5px] border-slate-300 rounded-xl"></div>
+                
+                {/* Top Left Corner */}
+                <div className="absolute -top-16 -left-16 w-32 h-32 bg-[#6db33f] rotate-45"></div>
+                <div className="absolute top-0 left-8 w-40 h-1.5 bg-[#f2c10d] rotate-45 origin-top-left"></div>
+                <div className="absolute top-4 left-16 w-32 h-3 bg-[#ed1c24] rotate-45 origin-top-left"></div>
+                <div className="absolute top-10 left-20 w-40 h-6 bg-[#3b6bc6] rotate-45 origin-top-left"></div>
+
+                {/* Bottom Right Corner */}
+                <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-[#f2c10d] rotate-45"></div>
+                <div className="absolute bottom-0 right-8 w-40 h-1.5 bg-[#6db33f] -rotate-[135deg] origin-bottom-right"></div>
+                <div className="absolute bottom-4 right-16 w-32 h-3 bg-[#ed1c24] -rotate-[135deg] origin-bottom-right"></div>
+                <div className="absolute bottom-10 right-20 w-40 h-6 bg-[#3b6bc6] -rotate-[135deg] origin-bottom-right"></div>
               </div>
 
-              {/* Watermark logo */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 translate-z-0 opacity-[0.03] pointer-events-none select-none">
-                <GraduationCap className="h-80 w-80 text-blue-900" />
-              </div>
+              <div className="relative z-10 flex-grow flex flex-col mt-4">
+                {/* Top Logos */}
+                <div className="flex justify-center items-center gap-3 sm:gap-6 pb-6">
+                  <img src="/msme_logo.png" alt="MSME" className="h-7 sm:h-9 object-contain" />
+                  <img src="/MInistory_of_corporate_affairs.jpeg" alt="MCA" className="h-9 sm:h-11 object-contain" />
+                  <img src="/ISO_Logo.png" alt="ISO" className="h-8 sm:h-10 object-contain" />
+                  <img src="/DPIIT_startup_india.png" alt="Startup India" className="h-5 sm:h-7 object-contain" />
+                  <img src="/logo.jpg" alt="Invigo" className="h-8 sm:h-10 object-contain" />
+                </div>
 
-              {/* Official branding block */}
-              <div className="space-y-6 relative z-10">
-                <div className="flex justify-between items-start border-b border-slate-200 pb-5">
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-mono text-blue-600 tracking-[3px] uppercase font-bold">Official Acceptance Memorandum</span>
-                    <h3 className="font-display text-xl font-extrabold text-slate-900">INVIGO INFOTECH PRIVATE LIMITED</h3>
-                    <p className="text-[10px] font-mono text-slate-500 text-left">Autonomous Innovation, Skill Validation, & Placements Node</p>
+                {/* Title */}
+                <div className="text-center mb-8">
+                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mb-5">Internship Acceptance Letter</h3>
+                  <div className="flex justify-between items-center text-xs sm:text-sm font-semibold text-slate-700 px-2 sm:px-6">
+                    <span>Reference ID: {synthesizedOffer.candidateId}</span>
+                    <span>Date: {new Date(synthesizedOffer.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                   </div>
-                  <span className="hidden sm:block text-xs font-mono bg-slate-50 border border-slate-200 px-2.5 py-1 rounded text-blue-700 font-bold">
-                    CODE: {synthesizedOffer.candidateId.split('-')[2]}
-                  </span>
                 </div>
 
                 {/* Candidate detail grids */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-200 font-mono text-xs text-slate-600">
-                  <div className="space-y-2">
-                    <p><span className="text-slate-400">DESIGNATED SCHOLAR:</span> <strong className="text-slate-800 uppercase">{synthesizedOffer.fullName}</strong></p>
-                    <p><span className="text-slate-400">COMMUNICATION NODE:</span> <span className="text-slate-700">{synthesizedOffer.email}</span></p>
-                    <p><span className="text-slate-400">ACADEMIC PATHWAY:</span> <span className="text-slate-700">{synthesizedOffer.degree} in {synthesizedOffer.fieldOfStudy}</span></p>
-                    <p><span className="text-slate-400">SCHOLASTIC BASE:</span> <span className="text-slate-700">{synthesizedOffer.collegeName}</span></p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/80 p-5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 mb-8 backdrop-blur-sm">
+                  <div className="space-y-3">
+                    <p><span className="text-slate-500 font-semibold">INTERN NAME:</span> <strong className="text-slate-900 ml-1">{synthesizedOffer.fullName.toUpperCase()}</strong></p>
+                    <p><span className="text-slate-500 font-semibold">COLLEGE:</span> <span className="ml-1 font-medium">{synthesizedOffer.degree}, {synthesizedOffer.collegeName}</span></p>
+                    <p><span className="text-slate-500 font-semibold">START DATE:</span> <span className="ml-1 font-medium">{new Date(synthesizedOffer.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span></p>
                   </div>
-                  <div className="space-y-2 sm:border-l sm:border-slate-200 sm:pl-4">
-                    <p><span className="text-slate-400">SCHOLAR ID INDEX:</span> <strong className="text-blue-600 font-bold">{synthesizedOffer.candidateId}</strong></p>
-                    <p><span className="text-slate-400">SELECTED MATRIX:</span> <strong className="text-blue-600 uppercase">{selectedDomainObject.title}</strong></p>
-                    <p><span className="text-slate-400">PROGRAM TIMELINE:</span> <span className="text-slate-700">{synthesizedOffer.durationWeeks} Weeks Cohort</span></p>
-                    <p><span className="text-slate-400">COMMENCEMENT ROTATION:</span> <span className="text-slate-700">{synthesizedOffer.startDate}</span></p>
-                    <p><span className="text-slate-450">TRAINING MODE:</span> <span className="text-emerald-600 font-bold uppercase">{synthesizedOffer.trainingMode === 'online' ? 'Online Labs' : 'Offline Centers'}</span></p>
-                    <p><span className="text-slate-400">PAYMENT STATUS:</span> <span className="text-slate-800 font-bold">₹{synthesizedOffer.amountPaid} Paid <span className="text-[10px] text-purple-600 font-semibold font-mono">(PhonePe UPI)</span></span></p>
+                  <div className="space-y-3 sm:border-l sm:border-slate-200 sm:pl-5">
+                    <p><span className="text-slate-500 font-semibold">INTERNSHIP DOMAIN:</span> <strong className="text-emerald-600 ml-1">{selectedDomainObject.title}</strong></p>
+                    <p><span className="text-slate-500 font-semibold">DURATION:</span> <span className="ml-1 font-medium">{synthesizedOffer.durationWeeks} Weeks | {synthesizedOffer.trainingMode === 'online' ? 'Online' : 'Offline'}</span></p>
+                    <p><span className="text-slate-500 font-semibold">STATUS:</span> <strong className="text-emerald-600 ml-1">ACCEPTED</strong></p>
                   </div>
                 </div>
 
                 {/* Acceptance Statement */}
-                <div className="space-y-3 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed pt-2">
+                <div className="space-y-5 text-sm sm:text-base text-slate-700 leading-relaxed flex-grow px-2">
+                  <p>Dear <strong className="text-slate-900">{synthesizedOffer.fullName}</strong>,</p>
                   <p>
-                    Dear <strong className="text-slate-900">{synthesizedOffer.fullName}</strong>,
+                    We are pleased to confirm that your application for the <strong>{selectedDomainObject.title}</strong> internship program at <strong>Invigo Infotech</strong> has been reviewed and accepted.
                   </p>
                   <p>
-                    Following an extensive diagnostic review of your scholastic credentials, we are pleased to confirm your appointment as an <strong className="text-blue-600 text-xs font-mono uppercase font-bold">Applied Research Intern</strong> in our <strong className="text-slate-800">{selectedDomainObject.title}</strong> matrix at Invigo Infotech.
+                    Your internship is scheduled to begin on <strong>{new Date(synthesizedOffer.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</strong> and will span <strong>{synthesizedOffer.durationWeeks} weeks</strong>.
                   </p>
                   <p>
-                    During this <strong className="text-slate-950 font-semibold">{synthesizedOffer.durationWeeks}-week</strong> study rotation, you will be systematically guided through our rigorous three-phase curriculum, building interactive industrial repositories using <strong className="text-blue-600 text-xs font-mono font-semibold">{selectedDomainObject.toolsAndTech.join(', ')}</strong>, and submitting weekly milestone deliverables to our designated academic node directors.
+                    As an accepted intern, you are expected to complete all assigned weekly milestones, maintain regular communication, submit all deliverables before the deadline, and pass the final MCQ assessment with a minimum score of 60%.
                   </p>
-                </div>
-
-                {/* Curriculums outline preview inside the slip */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3 font-mono text-xs">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-500 block">Milestones Structure & Validation Keys</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1 p-3 bg-white rounded-lg border border-slate-200">
-                      <span className="text-blue-600 text-[10px] font-extrabold block">PHASE 01: SIMULATION</span>
-                      <span className="text-[10px] text-slate-550 leading-relaxed">Weeks 1-4. Focus: Logical layouts and core optimization patterns.</span>
-                    </div>
-                    <div className="space-y-1 p-3 bg-white rounded-lg border border-slate-200">
-                      <span className="text-indigo-600 text-[10px] font-extrabold block">PHASE 02: SYNAPSE ARCH</span>
-                      <span className="text-[10px] text-slate-550 leading-relaxed">Weeks 5-8. Focus: Real data connection and secure API gates.</span>
-                    </div>
-                    <div className="space-y-1 p-3 bg-white rounded-lg border border-slate-200">
-                      <span className="text-emerald-600 text-[10px] font-extrabold block">PHASE 03: CAPSTONE</span>
-                      <span className="text-[10px] text-slate-550 leading-relaxed">Weeks 9-12. Focus: Cloud compiles and live dashboard evaluation.</span>
-                    </div>
-                  </div>
+                  <p>
+                    Upon successful completion, you will receive a verified Certificate of Completion. We look forward to supporting your growth and success.
+                  </p>
                 </div>
 
                 {/* Signatures */}
-                <div className="flex justify-between items-end pt-6 border-t border-slate-200">
-                  <div className="space-y-1.5 font-mono">
-                    <span className="text-[9px] text-slate-400 uppercase tracking-widest block">System Hash Code</span>
-                    <p className="text-[10px] text-emerald-600 whitespace-nowrap overflow-x-hidden md:w-80 w-44">sha256:7f053de08fa1ffc90a182c0b892</p>
+                <div className="flex justify-between items-end mt-12 pt-6 sm:pt-8 border-t border-slate-200 px-2">
+                  <div className="space-y-1">
+                    <img src="/Founder_Singnature.png" alt="Signature" className="h-8 sm:h-12 object-contain ml-2 mb-2" />
+                    <div className="w-40 border-t border-slate-800 pt-1">
+                       <p className="text-[10px] sm:text-xs font-bold text-slate-800 text-center">Founder ( Invigo Infotech )</p>
+                    </div>
                   </div>
-                  
-                  {/* Digital Signature */}
-                  <div className="text-right space-y-1">
-                    <span className="text-[8px] font-mono text-slate-400 block uppercase tracking-widest">Authorized Registrar signature</span>
-                    <span className="font-display italic text-lg text-slate-700 font-serif leading-none tracking-wider block">M. Krishnaswamy</span>
-                    <span className="block text-[8px] font-mono text-emerald-600">REGISTRAR NODE // SECURE_SIGNED</span>
+                  <div className="text-right space-y-1 text-[9px] sm:text-[10px] text-slate-500 pb-2">
+                    <p>This is an electronically generated letter.</p>
+                    <p>Verification: invigoinfotech.in/verification</p>
                   </div>
                 </div>
-
               </div>
             </div>
 
