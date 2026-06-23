@@ -5,7 +5,7 @@ import {
   DollarSign, TrendingUp, Gamepad2, Grid, GraduationCap, Clock, 
   BookOpen, AlignLeft, CheckCircle, ArrowRight, X 
 } from 'lucide-react';
-import { INTERNSHIP_DOMAINS } from '../data';
+import { INTERNSHIP_DOMAINS, BRANCH_OPTIONS } from '../data';
 import { InternshipDomain } from '../types';
 
 interface InternshipsViewProps {
@@ -37,10 +37,10 @@ export default function InternshipsView({
   const [selectedDomain, setSelectedDomain] = useState<InternshipDomain | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
 
-  // Filter lists
   const categories = ['All', 'Tech', 'Hardware', 'Management', 'Design'];
   const degrees = ['All', 'B.Tech', 'Diploma', 'BCA', 'B.Sc', 'MBA', 'BA', 'B.Com'];
-  const branches = ['All', 'Electrical', 'ECE', 'CSE', 'Mechanical', 'Civil', 'Robotics', 'Mechatronics', 'IT', 'Automobile', 'Architecture'];
+  const degreeBranches = BRANCH_OPTIONS[selectedDegreeFilter] || [];
+  const branches = ['All', ...degreeBranches];
 
   // Reset branch filter when degree changes to prevent stale hidden filters
   useEffect(() => {
@@ -61,12 +61,22 @@ export default function InternshipsView({
     const matchesDegree = 
       selectedDegreeFilter === 'All' || domain.targetDegrees.includes(selectedDegreeFilter as any);
 
-    const isBranchApplicable = selectedDegreeFilter === 'B.Tech' || selectedDegreeFilter === 'Diploma';
-    
-    const matchesBranch = 
-      !isBranchApplicable ||
-      selectedBranchFilter === 'All' || 
-      (domain.targetBranches && domain.targetBranches.includes(selectedBranchFilter));
+    let matchesBranch = true;
+    if (selectedBranchFilter !== 'All') {
+      if (domain.targetBranches && domain.targetBranches.length > 0) {
+        // Check if the domain's targetBranches restrict the currently selected degree
+        const domainHasRestrictionsForThisDegree = domain.targetBranches.some(b => degreeBranches.includes(b));
+        
+        if (domainHasRestrictionsForThisDegree) {
+          // If there are restrictions for this degree, enforce them
+          matchesBranch = domain.targetBranches.includes(selectedBranchFilter);
+        } else {
+          // If the domain has branch restrictions but NONE of them apply to the selected degree,
+          // assume the domain is open to all branches of this degree (since matchesDegree is true)
+          matchesBranch = true;
+        }
+      }
+    }
 
     return matchesSearch && matchesCategory && matchesDegree && matchesBranch;
   });
@@ -211,7 +221,7 @@ export default function InternshipsView({
                   </button>
                 ))}
               </div>
-              {(selectedDegreeFilter === 'B.Tech' || selectedDegreeFilter === 'Diploma') && (
+              {branches.length > 1 && (
                 <div className="space-y-3 pt-3 border-t border-slate-100">
                   <span className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
                     <Layers className="h-4 w-4 text-emerald-500" />
