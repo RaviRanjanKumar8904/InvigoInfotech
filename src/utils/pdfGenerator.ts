@@ -332,7 +332,7 @@ async function buildCertificate(
   }
 
   // QR Code (Moved more to the left to avoid bottom-right ribbons)
-  const qrX = W - 92;
+  const qrX = W - 105;
   const qrImg = await getBase64ImageFromUrl('/Certificate_Verification_qr.jpeg');
   if (qrImg) {
     doc.addImage(qrImg, 'JPEG', qrX, bottomY - 20, 24, 24);
@@ -340,11 +340,11 @@ async function buildCertificate(
     drawQRCode(doc, qrX, bottomY - 20, 24, opts.certNo);
   }
 
-  // Cert Number right below QR Code
+  // Cert Number lower and slightly bigger
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
-  doc.text('Certificate no: ' + opts.certNo, qrX + 12, bottomY + 6, { align: 'center' });
+  doc.text('Certificate no: ' + opts.certNo, qrX + 12, bottomY + 10, { align: 'center' });
 }
 
 // ═══════════════════════════════════════════════
