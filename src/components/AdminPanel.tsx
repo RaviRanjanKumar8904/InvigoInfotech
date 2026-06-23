@@ -21,7 +21,7 @@ interface AdminPanelProps {
   setCurrentTab: (tab: string) => void;
 }
 
-type AdminSection = 'dashboard' | 'users' | 'certificates' | 'settings' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests';
 
 // ─── Helper: resolve domain title from domainId ───
 function getDomainTitle(domainId: string): string {
@@ -177,7 +177,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         
         if (candidateId.startsWith('INV-')) {
           const year = new Date().getFullYear();
-          let regNo = data.registrationNo ? data.registrationNo.replace(/\\s+/g, '').toUpperCase() : '';
+          let regNo = data.registrationNo ? data.registrationNo.replace(/\s+/g, '').toUpperCase() : '';
           if (!regNo) regNo = candidateId.includes('ADM') ? `ADM${Date.now().toString(36).toUpperCase()}` : Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
           const newId = `${year}IN${regNo}`;
           
@@ -698,7 +698,6 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     { id: 'domains', label: 'Domain Management', icon: Globe },
     { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
     { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
-    { id: 'settings', label: 'Settings', icon: Settings2 },
     { id: 'logs', label: 'Activity Logs', icon: Activity, badge: logs.length },
     { id: 'errors', label: 'Error Reports', icon: AlertTriangle, badge: activeErrors },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
@@ -1543,141 +1542,6 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       </div>
                     );
                   })}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════ SETTINGS SECTION ═══════════════════════ */}
-          {activeSection === 'settings' && (
-            <motion.div
-              key="settings"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Portal Settings */}
-                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <Settings2 className="h-4 w-4 text-blue-600" />
-                    Portal Configuration
-                  </h3>
-
-                  <div className="space-y-4 text-xs">
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700">Portal Display Name</label>
-                      <input
-                        type="text"
-                        value={settings.portalName}
-                        onChange={(e) => setSettings({ ...settings, portalName: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700">Support Contact</label>
-                      <input
-                        type="text"
-                        value={settings.supportPhone}
-                        onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700">Theme Accent Color</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="color"
-                          value={settings.themeAccent}
-                          onChange={(e) => setSettings({ ...settings, themeAccent: e.target.value })}
-                          className="h-10 w-16 rounded-lg border border-slate-200 cursor-pointer"
-                        />
-                        <span className="text-slate-500 font-mono">{settings.themeAccent}</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-bold text-slate-700">Announcement Banner</label>
-                      <textarea
-                        value={settings.announcementText}
-                        onChange={(e) => setSettings({ ...settings, announcementText: e.target.value })}
-                        rows={3}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs outline-none focus:ring-2 focus:ring-blue-200 transition-all leading-relaxed"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                      <div>
-                        <span className="font-bold text-slate-800 block">Maintenance Mode</span>
-                        <p className="text-[10px] text-slate-500 mt-0.5">Locks down client registrations temporarily</p>
-                      </div>
-                      <button
-                        onClick={() => setSettings({ ...settings, maintenanceMode: !settings.maintenanceMode })}
-                        className={`relative w-12 h-6 rounded-full transition-all cursor-pointer ${
-                          settings.maintenanceMode ? 'bg-amber-500' : 'bg-slate-300'
-                        }`}
-                      >
-                        <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                          settings.maintenanceMode ? 'translate-x-6' : 'translate-x-0'
-                        }`} />
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={handleSaveSettings}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 transition-all shadow-md active:scale-[0.98] cursor-pointer"
-                    >
-                      <Check className="h-4 w-4" />
-                      Save Settings
-                    </button>
-                  </div>
-                </div>
-
-                {/* Preview */}
-                <div className="rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-5">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <Eye className="h-4 w-4 text-blue-600" />
-                    Live Preview
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-3">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Announcement Banner Preview</span>
-                      <div className="bg-red-50 border border-red-200 text-red-700 text-xs font-mono font-bold p-3 rounded-lg flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-                        <span>{settings.announcementText || 'No announcement set'}</span>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Maintenance Status</span>
-                      <div className={`p-3 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                        settings.maintenanceMode
-                          ? 'bg-amber-50 border border-amber-200 text-amber-700'
-                          : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-                      }`}>
-                        {settings.maintenanceMode ? (
-                          <><AlertTriangle className="h-4 w-4" /> System under maintenance — registrations locked</>
-                        ) : (
-                          <><CheckCircle className="h-4 w-4" /> System operational — all services active</>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 font-mono">Theme Color</span>
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl shadow-lg" style={{ backgroundColor: settings.themeAccent }} />
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">{settings.portalName}</p>
-                          <p className="text-[10px] text-slate-500">Support: {settings.supportPhone}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </motion.div>
