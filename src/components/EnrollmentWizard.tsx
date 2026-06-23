@@ -889,36 +889,40 @@ export default function EnrollmentWizard({
             <div className="rounded-2xl bg-white p-6 sm:p-10 relative overflow-hidden shadow-2xl min-h-[800px] flex flex-col">
               
               {/* Background Ribbons */}
-              <div className="absolute top-0 left-0 w-full h-full pointer-events-none z-0 opacity-100">
+              <div className="absolute inset-0 pointer-events-none z-0">
                 {/* Inner Border */}
-                <div className="absolute inset-3 border-[1.5px] border-slate-300 rounded-xl"></div>
+                <div className="absolute inset-4 border-[1.5px] border-slate-300 rounded-xl"></div>
                 
-                {/* Top Left Corner */}
-                <div className="absolute -top-16 -left-16 w-32 h-32 bg-[#6db33f] rotate-45"></div>
-                <div className="absolute top-0 left-8 w-40 h-1.5 bg-[#f2c10d] rotate-45 origin-top-left"></div>
-                <div className="absolute top-4 left-16 w-32 h-3 bg-[#ed1c24] rotate-45 origin-top-left"></div>
-                <div className="absolute top-10 left-20 w-40 h-6 bg-[#3b6bc6] rotate-45 origin-top-left"></div>
+                {/* Top Left Corner SVG */}
+                <svg className="absolute top-0 left-0 w-48 h-48 sm:w-64 sm:h-64 rounded-tl-2xl overflow-hidden" viewBox="0 0 200 200">
+                  <polygon points="0,0 60,0 0,60" fill="#6db33f" />
+                  <rect x="20" y="-2" width="120" height="5" fill="#f2c10d" transform="rotate(45)" />
+                  <rect x="35" y="8" width="100" height="12" fill="#ed1c24" transform="rotate(45)" />
+                  <rect x="55" y="25" width="90" height="20" fill="#3b6bc6" transform="rotate(45)" />
+                </svg>
 
-                {/* Bottom Right Corner */}
-                <div className="absolute -bottom-16 -right-16 w-32 h-32 bg-[#f2c10d] rotate-45"></div>
-                <div className="absolute bottom-0 right-8 w-40 h-1.5 bg-[#6db33f] -rotate-[135deg] origin-bottom-right"></div>
-                <div className="absolute bottom-4 right-16 w-32 h-3 bg-[#ed1c24] -rotate-[135deg] origin-bottom-right"></div>
-                <div className="absolute bottom-10 right-20 w-40 h-6 bg-[#3b6bc6] -rotate-[135deg] origin-bottom-right"></div>
+                {/* Bottom Right Corner SVG */}
+                <svg className="absolute bottom-0 right-0 w-48 h-48 sm:w-64 sm:h-64 rounded-br-2xl overflow-hidden" viewBox="0 0 200 200" style={{ transform: 'rotate(180deg)' }}>
+                  <polygon points="0,0 60,0 0,60" fill="#f2c10d" />
+                  <rect x="20" y="-2" width="120" height="5" fill="#6db33f" transform="rotate(45)" />
+                  <rect x="35" y="8" width="100" height="12" fill="#ed1c24" transform="rotate(45)" />
+                  <rect x="55" y="25" width="90" height="20" fill="#3b6bc6" transform="rotate(45)" />
+                </svg>
               </div>
 
-              <div className="relative z-10 flex-grow flex flex-col mt-4">
+              <div className="relative z-10 flex-grow flex flex-col mt-2">
                 {/* Top Logos */}
-                <div className="flex justify-center items-center gap-3 sm:gap-6 pb-6">
-                  <img src="/msme_logo.png" alt="MSME" className="h-7 sm:h-9 object-contain" />
-                  <img src="/MInistory_of_corporate_affairs.jpeg" alt="MCA" className="h-9 sm:h-11 object-contain" />
-                  <img src="/ISO_Logo.png" alt="ISO" className="h-8 sm:h-10 object-contain" />
-                  <img src="/DPIIT_startup_india.png" alt="Startup India" className="h-5 sm:h-7 object-contain" />
-                  <img src="/logo.jpg" alt="Invigo" className="h-8 sm:h-10 object-contain" />
+                <div className="flex justify-center items-center gap-4 sm:gap-8 pb-8 pt-4">
+                  <img src="/msme_logo.png" alt="MSME" className="h-10 sm:h-14 object-contain" />
+                  <img src="/MInistory_of_corporate_affairs.jpeg" alt="MCA" className="h-12 sm:h-16 object-contain" />
+                  <img src="/ISO_Logo.png" alt="ISO" className="h-10 sm:h-14 object-contain" />
+                  <img src="/DPIIT_startup_india.png" alt="Startup India" className="h-8 sm:h-12 object-contain" />
+                  <img src="/logo.jpg" alt="Invigo" className="h-10 sm:h-14 object-contain" />
                 </div>
 
                 {/* Title */}
                 <div className="text-center mb-8">
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mb-5">Internship Acceptance Letter</h3>
+                  <h3 className="font-sans text-2xl sm:text-3xl font-extrabold text-slate-900 mb-6">Internship Acceptance Letter</h3>
                   <div className="flex justify-between items-center text-xs sm:text-sm font-semibold text-slate-700 px-2 sm:px-6">
                     <span>Reference ID: {synthesizedOffer.candidateId}</span>
                     <span>Date: {new Date(synthesizedOffer.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
