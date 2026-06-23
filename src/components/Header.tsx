@@ -20,7 +20,7 @@ export default function Header({ currentTab, setCurrentTab, savedEnrollmentsCoun
     .map((e: string) => e.trim());
   const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
-  const navItems = [
+  const navItems = isAdmin ? [] : [
     { id: 'home', label: 'Home' },
     { id: 'internships', label: 'Internships' },
     { id: 'placements', label: hasCompletedInternship ? 'Placements' : '🔒 Placements' },

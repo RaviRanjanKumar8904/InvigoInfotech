@@ -23,7 +23,6 @@ const AuthView = lazy(() => import('./components/AuthView'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const PlacementsView = lazy(() => import('./components/PlacementsView'));
 const VideoPlayerView = lazy(() => import('./components/VideoPlayerView'));
-const ProfileView = lazy(() => import('./components/ProfileView'));
 
 // Lightweight loading fallback
 function PageLoader() {
@@ -45,7 +44,6 @@ export default function App() {
     if (path === '/nexus') return 'nexus';
     if (path === '/placements') return 'placements';
     if (path === '/admin') return 'admin';
-    if (path === '/profile') return 'profile';
     if (path.startsWith('/player')) return 'player';
     return 'home';
   });
@@ -73,7 +71,6 @@ export default function App() {
       else if (path === '/nexus') setCurrentTab('nexus');
       else if (path === '/placements') setCurrentTab('placements');
       else if (path === '/admin') setCurrentTab('admin');
-      else if (path === '/profile') setCurrentTab('profile');
       else if (path.startsWith('/player')) setCurrentTab('player');
       else setCurrentTab('home');
     };
@@ -91,10 +88,7 @@ export default function App() {
 
   // Load persistent user session using Firebase Auth
   useEffect(() => {
-    let unsubStudent: (() => void) | null = null;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (unsubStudent) unsubStudent();
-      
       if (firebaseUser) {
         try {
           // Enforcement: check if user is blocked by admin before granting dashboard access
@@ -118,42 +112,38 @@ export default function App() {
           }
 
           const docRef = doc(db, 'students', firebaseUser.uid);
-          unsubStudent = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-              const userData = docSnap.data() as StudentUser;
-              setCurrentUser(userData);
-              if (ADMIN_EMAILS.includes(userData.email.toLowerCase()) && currentTab === 'home') {
-                setCurrentTab('admin');
-              }
-            } else {
-              const basicUser: StudentUser = {
-                id: firebaseUser.uid,
-                fullName: firebaseUser.displayName || 'Learner',
-                email: firebaseUser.email || '',
-                phone: '',
-              };
-              setCurrentUser(basicUser);
-              if (ADMIN_EMAILS.includes(basicUser.email.toLowerCase()) && currentTab === 'home') {
-                setCurrentTab('admin');
-              }
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const userData = docSnap.data() as StudentUser;
+            setCurrentUser(userData);
+            // Only redirect admin to admin panel on auth state change
+            if (ADMIN_EMAILS.includes(userData.email.toLowerCase())) {
+              setCurrentTab('admin');
             }
-            setIsAuthLoading(false);
-          });
+          } else {
+            // Fallback basic student representation
+            const basicUser: StudentUser = {
+              id: firebaseUser.uid,
+              fullName: firebaseUser.displayName || 'Learner',
+              email: firebaseUser.email || '',
+              phone: '',
+            };
+            setCurrentUser(basicUser);
+            if (ADMIN_EMAILS.includes(basicUser.email.toLowerCase())) {
+              setCurrentTab('admin');
+            }
+          }
         } catch (e) {
           console.error('Error fetching student profile from Firestore:', e);
-          setIsAuthLoading(false);
         }
       } else {
         setCurrentUser(null);
-        setIsAuthLoading(false);
       }
+      setIsAuthLoading(false);
     });
 
-    return () => {
-      unsubscribe();
-      if (unsubStudent) unsubStudent();
-    };
-  }, [currentTab]);
+    return () => unsubscribe();
+  }, []);
 
   // Sync enrollments dynamically in real-time from Firestore when authenticated
   useEffect(() => {
@@ -267,6 +257,31 @@ export default function App() {
   // Check if user has completed at least 1 internship (for placement unlock)
   const hasCompletedInternship = enrollments.some(e => e.status === 'Completed' || e.certificateIssued);
 
+  const isAdminUser = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
+
+  if (isAdminUser) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#f8fafc] font-sans text-slate-800 selection:bg-cyan-100 selection:text-cyan-900 relative overflow-hidden">
+        <Header 
+          currentTab="admin" 
+          setCurrentTab={setCurrentTab} 
+          savedEnrollmentsCount={0}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          hasCompletedInternship={hasCompletedInternship}
+        />
+        <main className="flex-grow relative z-10">
+          <Suspense fallback={<PageLoader />}>
+            <AdminPanel 
+              currentUser={currentUser} 
+              setCurrentTab={setCurrentTab}
+            />
+          </Suspense>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f8fafc] font-sans text-slate-800 selection:bg-cyan-100 selection:text-cyan-900 relative overflow-hidden">
       
@@ -371,33 +386,6 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'admin' && (
-            currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()) ? (
-              <AdminPanel 
-                currentUser={currentUser} 
-                setCurrentTab={setCurrentTab}
-              />
-            ) : (
-              <AuthView 
-                onLoginSuccess={handleLoginSuccess}
-                setCurrentTab={setCurrentTab}
-              />
-            )
-          )}
-
-          {currentTab === 'profile' && (
-            currentUser ? (
-              <ProfileView 
-                currentUser={currentUser} 
-                setCurrentTab={setCurrentTab}
-              />
-            ) : (
-              <AuthView 
-                onLoginSuccess={handleLoginSuccess}
-                setCurrentTab={setCurrentTab}
-              />
-            )
-          )}
 
           {currentTab === 'player' && (
              <VideoPlayerView setCurrentTab={setCurrentTab} />
