@@ -727,8 +727,6 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // ─── Coupons CRUD ───
   const handleAddCoupon = async () => {
     if (!newCoupon.code.trim()) return;
-  const handleAddCoupon = async () => {
-    if (!newCoupon.code.trim()) return;
     try {
       const code = newCoupon.code.toUpperCase().trim();
       const couponData: any = {
