@@ -23,6 +23,7 @@ const AuthView = lazy(() => import('./components/AuthView'));
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const PlacementsView = lazy(() => import('./components/PlacementsView'));
 const VideoPlayerView = lazy(() => import('./components/VideoPlayerView'));
+const ProfileView = lazy(() => import('./components/ProfileView'));
 
 // Lightweight loading fallback
 function PageLoader() {
@@ -203,8 +204,10 @@ export default function App() {
     if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
       setCurrentTab('admin');
     } else {
-      // After login, redirect to HOME page instead of nexus
-      setCurrentTab('home');
+      // After login, redirect to HOME page, unless they are in the middle of enrolling
+      if (currentTab !== 'enroll') {
+        setCurrentTab('home');
+      }
     }
   };
 
@@ -228,6 +231,7 @@ export default function App() {
 
   const handleSelectDomainForEnrollment = (domainId: string) => {
     setPreselectedDomainId(domainId);
+    setCurrentTab('enroll');
   };
 
   const handleClearEnrollments = async () => {
@@ -363,6 +367,21 @@ export default function App() {
                 enrollments={enrollments.filter(e => e.email.toLowerCase() === currentUser.email.toLowerCase())} 
                 setCurrentTab={setCurrentTab}
                 onSelectDomainForEnrollment={handleSelectDomainForEnrollment}
+              />
+            ) : (
+              <AuthView 
+                onLoginSuccess={handleLoginSuccess}
+                setCurrentTab={setCurrentTab}
+              />
+            )
+          )}
+
+          {currentTab === 'profile' && (
+            currentUser ? (
+              <ProfileView 
+                currentUser={currentUser} 
+                setCurrentTab={setCurrentTab}
+                enrollments={enrollments.filter(e => e.email.toLowerCase() === currentUser.email.toLowerCase())}
               />
             ) : (
               <AuthView 

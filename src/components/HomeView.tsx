@@ -1,5 +1,4 @@
 import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star } from 'lucide-react';
-import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star, Cpu as CpuIcon, Code as CodeIcon, Terminal as TerminalIcon, FlaskConical as LabIcon, Briefcase as BusinessIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TESTIMONIALS, INTERNSHIP_DOMAINS } from '../data';
 import { EnrollmentState } from '../types';

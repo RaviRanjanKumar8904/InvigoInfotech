@@ -7,9 +7,10 @@ import { StudentUser } from '../types';
 interface ProfileViewProps {
   currentUser: StudentUser;
   setCurrentTab?: (tab: string) => void;
+  enrollments?: import('../types').EnrollmentState[];
 }
 
-export default function ProfileView({ currentUser }: ProfileViewProps) {
+export default function ProfileView({ currentUser, enrollments }: ProfileViewProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -41,15 +42,14 @@ export default function ProfileView({ currentUser }: ProfileViewProps) {
       await setDoc(studentRef, { ...formData }, { merge: true });
 
       // 2. Batch update all enrollments for this user so certificates/offer letters update globally
-      const userEmail = (currentUser.email || '').toLowerCase();
-      const enrollmentsQuery = query(collection(db, 'enrollments'), where('email', '==', userEmail));
-      const snap = await getDocs(enrollmentsQuery);
-      
       const batch = writeBatch(db);
-      snap.forEach((d) => {
-        batch.update(d.ref, { ...formData });
-      });
-      await batch.commit();
+      if (enrollments && enrollments.length > 0) {
+        enrollments.forEach((enr) => {
+          const enrRef = doc(db, 'enrollments', enr.candidateId);
+          batch.update(enrRef, { ...formData });
+        });
+        await batch.commit();
+      }
 
       setSuccessMsg('Profile updated successfully across all your enrollments!');
     } catch (error) {

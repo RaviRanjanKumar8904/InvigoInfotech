@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Milestone, Sparkles, HelpCircle, ChevronDown, ChevronUp, ShieldCheck, Cpu, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Sparkles, 
+  HelpCircle, 
+  ChevronDown, 
+  ShieldCheck, 
+  Cpu, 
+  Users, 
+  Target, 
+  Building,
+  GraduationCap
+} from 'lucide-react';
 import { FAQS } from '../data';
 
 export default function AboutView() {
@@ -11,22 +22,25 @@ export default function AboutView() {
 
   const corePillars = [
     {
-      title: 'Industry-Accredited Roadmap',
-      desc: 'Invigo designs programs synchronized with actual workforce configurations. B.Tech, Diploma, BCA, B.Sc, MBA, BA, and B.Com paths receive exactly appropriate structural projects.',
-      icon: Cpu,
-      color: 'text-blue-600 border-blue-100 bg-blue-50/40'
+      title: 'Industry-Accredited',
+      desc: 'Invigo designs programs synchronized with actual workforce configurations. B.Tech, Diploma, BCA, B.Sc, MBA, BA, and B.Com paths receive appropriate structural projects.',
+      icon: Target,
+      gradient: 'from-blue-500 to-cyan-400',
+      shadow: 'shadow-blue-500/20'
     },
     {
       title: 'Subject-Matter Experts',
-      desc: 'Our academic directors and senior engineers review submissions, debug complex setups, and support scholars throughout their learning journey.',
+      desc: 'Our academic directors and senior engineers review submissions, debug complex setups, and support scholars throughout their rigorous learning journey.',
       icon: Users,
-      color: 'text-indigo-600 border-indigo-150 bg-indigo-50/40'
+      gradient: 'from-violet-500 to-fuchsia-500',
+      shadow: 'shadow-violet-500/20'
     },
     {
       title: 'Verifiable Integrity',
-      desc: 'We publish student progress metrics on standard verifiable systems. No fake indicators, no unaccredited signatures.',
+      desc: 'We publish student progress metrics on standard verifiable systems. No fake indicators, no unaccredited signatures. Pure authentic skill validation.',
       icon: ShieldCheck,
-      color: 'text-emerald-700 border-emerald-100 bg-emerald-50/40'
+      gradient: 'from-emerald-500 to-teal-400',
+      shadow: 'shadow-emerald-500/20'
     }
   ];
 
@@ -35,232 +49,312 @@ export default function AboutView() {
       year: '2022',
       title: 'Invigo Infotech Founded',
       location: 'NCR Delhi Office',
-      desc: 'Invigo Infotech was founded to address the widening gap between static college textbooks and practical industry engineering requirements.'
+      desc: 'Founded to address the widening gap between static college textbooks and practical industry engineering requirements.',
+      icon: Building
     },
     {
       year: '2023',
       title: 'Academic Curriculum Launched',
       location: '12+ Colleges Connected',
-      desc: 'Synthesized 10 customized technical study modules mapped onto autonomous credit schemes for B.Tech, Diploma, BCA, B.Sc, MBA, BA, and B.Com structures.'
+      desc: 'Synthesized 10 customized technical study modules mapped onto autonomous credit schemes for diverse degree structures.',
+      icon: GraduationCap
     },
     {
       year: '2024',
       title: 'Management Division Added',
       location: 'Business & Finance Expansion',
-      desc: 'Added professional MBA-centric modules focusing on growth structures, corporate finance, and business development.'
+      desc: 'Added professional MBA-centric modules focusing on growth structures, corporate finance, and business development.',
+      icon: Users
     },
     {
       year: '2025',
-      title: 'Verifiable Certificates introduced',
-      location: 'Blockchain Credentials Rollout',
-      desc: 'Formed partnerships to deploy tamper-proof cryptographic signatures onto student certificates for easy employer verification.'
+      title: 'Verifiable Certificates',
+      location: 'Credentials Rollout',
+      desc: 'Formed partnerships to deploy tamper-proof cryptographic signatures onto student certificates for easy employer verification.',
+      icon: ShieldCheck
     },
     {
       year: '2026',
       title: 'The Student Portal Launch',
       location: 'Real-Time Interface Release',
-      desc: 'Unveiled our interactive student portal allowing real-time timeline navigation, mock project submissions, and certificate validation.'
+      desc: 'Unveiled our interactive student portal allowing real-time timeline navigation, mock project submissions, and certificate validation.',
+      icon: Cpu
     }
   ];
 
   const executiveTeam = [
     {
       name: 'Dr. Devendra R. Mathur',
-      role: 'Head of Engineering Programs',
+      role: 'Head of Engineering',
       bio: 'Former IIT researcher with 18+ years optimizing automation systems, web architectures, and hardware modules.',
-      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?fit=crop&w=150&h=150'
+      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?fit=crop&w=300&h=300'
     },
     {
       name: 'Malini Krishnaswamy',
-      role: 'Head of MBA & Business Admin Programs',
+      role: 'Head of Business Admin',
       bio: 'Ex-strategy leader at top Fintech systems. Architect of our active finance, business management, and marketing syllabus courses.',
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?fit=crop&w=150&h=150'
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?fit=crop&w=300&h=300'
     },
     {
-      name: 'Samarpreet Singh Sidhu',
-      role: 'Lead Cloud & DevOps Advisor',
+      name: 'Samarpreet Singh',
+      role: 'Lead DevOps Advisor',
       bio: 'AWS Certified Solutions Architect. Handles global secure cloud pipelines, Docker/Kubernetes container systems, and code reviews.',
-      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?fit=crop&w=150&h=150'
+      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?fit=crop&w=300&h=300'
     }
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { type: 'spring', stiffness: 50, damping: 15 } 
+    }
+  };
+
   return (
-    <div className="relative overflow-hidden bg-transparent text-slate-800 py-12 md:py-20">
+    <div className="relative overflow-hidden bg-slate-50 text-slate-800 py-16 md:py-24 font-sans selection:bg-blue-100 selection:text-blue-900">
       
-      {/* Glow overlays */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[15%] left-[5%] h-[500px] w-[500px] rounded-full bg-blue-100/30 blur-[100px]" />
-        <div className="absolute bottom-[20%] right-[10%] h-[600px] w-[600px] rounded-full bg-indigo-100/30 blur-[120px]" />
+      {/* Dynamic Background Gradients */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] h-[600px] w-[600px] rounded-full bg-blue-300/15 blur-[120px]" />
+        <div className="absolute top-[20%] right-[-10%] h-[500px] w-[500px] rounded-full bg-violet-300/15 blur-[100px]" />
+        <div className="absolute bottom-[-10%] left-[20%] h-[700px] w-[700px] rounded-full bg-cyan-200/10 blur-[130px]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-24">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
-        {/* BRAND INTRODUCTION */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-6 space-y-6">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 font-sans">
-              <Sparkles className="h-4 w-4 animate-pulse text-violet-600" />
-              <span>THE INVIGO CORE MISSION</span>
+        {/* HERO SECTION */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+          className="text-center max-w-4xl mx-auto mb-28"
+        >
+          <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/60 backdrop-blur-md px-4 py-1.5 text-xs font-bold text-blue-700 uppercase tracking-widest shadow-sm mb-8">
+            <Sparkles className="h-4 w-4 animate-pulse text-blue-500" />
+            <span>The Invigo Core Mission</span>
+          </motion.div>
+          
+          <motion.h1 variants={itemVariants} className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight mb-8">
+            We Code, Build, and <br className="hidden md:block" />
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent drop-shadow-sm">
+              Orchestrate Future Tech.
             </span>
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              We Code, Build, and <br />
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                Orchestrate Future Tech.
-              </span>
-            </h1>
-            <p className="text-slate-650 text-sm leading-relaxed">
-              Invigo Infotech is a specialized internship-providing organization designed exclusively for tech and management scholars (B.Tech, Diploma, BCA, B.Sc, MBA, BA, and B.Com students). We establish interactive workspaces that turn classrooms into active production repositories.
-            </p>
-            <p className="text-slate-650 text-sm leading-relaxed">
-              By working within our 16 highly responsive domains, candidates become comfortable with asynchronous architectures, database constraints, hardware registers, and corporate strategic guidelines.
-            </p>
-          </div>
+          </motion.h1>
+          
+          <motion.p variants={itemVariants} className="text-lg text-slate-600 leading-relaxed max-w-3xl mx-auto">
+            Invigo Infotech is a specialized internship-providing organization designed exclusively for tech and management scholars. We establish interactive workspaces that turn traditional classrooms into active, high-performance production repositories.
+          </motion.p>
+        </motion.div>
 
-          {/* Abstract Cyber Graphic box */}
-          <div className="lg:col-span-6 relative">
-            <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 md:p-8 relative overflow-hidden shadow-sm">
-              <div className="absolute top-0 right-0 p-4 text-[10px] font-mono text-indigo-600 font-bold">SYSTEM ARCHITECTURE // VIG_v1.2</div>
-              <div className="space-y-6">
-                <span className="text-xs uppercase tracking-widest font-mono text-slate-400 font-bold block">Core Blueprint Values</span>
+        {/* CORE PILLARS (Grid of 3 Cards) */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32"
+        >
+          {corePillars.map((pillar, i) => {
+            const Icon = pillar.icon;
+            return (
+              <motion.div 
+                key={i}
+                variants={itemVariants}
+                whileHover={{ y: -8, scale: 1.02 }}
+                className="group relative rounded-3xl bg-white border border-slate-200/60 p-8 shadow-xl shadow-slate-200/30 overflow-hidden"
+              >
+                {/* Hover Gradient Overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${pillar.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity duration-500`} />
                 
-                <div className="space-y-4">
-                  {corePillars.map((pillar, i) => {
-                    const Icon = pillar.icon;
-                    return (
-                      <div key={i} className={`flex gap-4 p-4 rounded-2xl border ${pillar.color}`}>
-                        <Icon className="h-6 w-6 shrink-0 mt-0.5" />
-                        <div>
-                          <h4 className="text-sm font-extrabold text-slate-900">{pillar.title}</h4>
-                          <p className="text-xs text-slate-600 leading-relaxed mt-1">{pillar.desc}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className={`inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-to-br ${pillar.gradient} shadow-lg ${pillar.shadow} mb-6 text-white`}>
+                  <Icon className="h-7 w-7" />
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                
+                <h3 className="text-xl font-bold text-slate-900 mb-3">{pillar.title}</h3>
+                <p className="text-slate-600 leading-relaxed text-sm">
+                  {pillar.desc}
+                </p>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
         {/* DYNAMIC TIMELINE */}
-        <div className="space-y-12">
-          <div className="text-center space-y-3">
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold text-slate-900 text-center">Chronological Milestones</h2>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto">
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+          className="mb-32"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Chronological Milestones</h2>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
               Our growth trajectory from local electronic lab modules up to cryptographic distributed system scaling.
             </p>
           </div>
 
-          <div className="relative border-l border-slate-200 ml-4 md:ml-32 py-4 space-y-8">
-            {milestones.map((milestone, idx) => (
-              <div key={idx} className="relative pl-6 md:pl-10 group">
-                {/* Year tag hanging left on desktop */}
-                <span className="hidden md:block absolute right-full mr-10 top-0 text-right font-display text-lg font-extrabold text-blue-600 font-mono">
-                  {milestone.year}
-                </span>
+          <div className="max-w-4xl mx-auto relative">
+            {/* Center Line for Desktop */}
+            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-indigo-500 to-transparent -translate-x-1/2 rounded-full opacity-20" />
 
-                {/* Cyber Dot with outer glow */}
-                <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-blue-600 border border-white shadow-md group-hover:scale-125 transition-transform duration-200" />
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="md:hidden font-mono text-blue-600 font-bold">{milestone.year} —</span>
-                    <h3 className="text-base font-extrabold text-slate-900">{milestone.title}</h3>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 text-[10px] font-mono text-indigo-600 uppercase tracking-widest font-bold">
-                    <Milestone className="h-3.5 w-3.5" />
-                    <span>{milestone.location}</span>
-                  </div>
-                  <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-                    {milestone.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+            <div className="space-y-12 relative">
+              {milestones.map((milestone, idx) => {
+                const Icon = milestone.icon;
+                const isEven = idx % 2 === 0;
+                return (
+                  <motion.div 
+                    key={idx} 
+                    variants={itemVariants}
+                    className={`relative flex flex-col md:flex-row items-center gap-8 ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'}`}
+                  >
+                    {/* Content Box */}
+                    <div className={`flex-1 w-full md:w-1/2 ${isEven ? 'md:text-right md:pr-12' : 'md:text-left md:pl-12'}`}>
+                      <div className={`inline-flex items-center gap-2 mb-2 ${isEven ? 'md:justify-end' : 'md:justify-start'}`}>
+                        <span className="font-mono text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">{milestone.year}</span>
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 bg-white border border-slate-200 px-2 py-1 rounded-full shadow-sm">{milestone.location}</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-3">{milestone.title}</h3>
+                      <p className="text-slate-600 text-sm leading-relaxed bg-white/50 p-4 rounded-2xl border border-slate-100 shadow-sm backdrop-blur-sm">
+                        {milestone.desc}
+                      </p>
+                    </div>
+
+                    {/* Center Node */}
+                    <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white border-4 border-slate-50 items-center justify-center shadow-xl shadow-blue-500/10 z-10">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* LEADERSHIP nodes */}
-        <div className="space-y-12 border-t border-slate-150 pt-16">
-          <div className="text-center space-y-3">
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold text-slate-900 text-center">Academic & Research Leadership</h2>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto">
+        {/* LEADERSHIP TEAM */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+          className="mb-32"
+        >
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Academic Leadership</h2>
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
               The qualified engineers and operations directors steering our curriculum maps and evaluating Capstone portfolios.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {executiveTeam.map((leader, i) => (
-              <div key={i} className="rounded-[1.8rem] border border-slate-200 bg-white p-6 flex flex-col justify-between space-y-5 hover:border-blue-300 hover:shadow-md transition-all duration-200 shadow-sm">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <img src={leader.avatar} alt={leader.name} referrerPolicy="no-referrer" className="h-14 w-14 rounded-2xl object-cover border border-slate-100 bg-slate-50 shadow-sm" />
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900 leading-tight">{leader.name}</h3>
-                      <p className="text-xs text-blue-600 font-mono tracking-wide font-semibold mt-0.5">{leader.role}</p>
-                    </div>
+              <motion.div 
+                key={i} 
+                variants={itemVariants}
+                className="group bg-white rounded-3xl border border-slate-200/60 overflow-hidden shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+              >
+                <div className="h-48 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent z-10" />
+                  <img 
+                    src={leader.avatar} 
+                    alt={leader.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute bottom-4 left-6 z-20">
+                    <h3 className="text-xl font-bold text-white mb-1">{leader.name}</h3>
+                    <p className="text-sm font-semibold text-blue-300 font-mono tracking-wide">{leader.role}</p>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                </div>
+                <div className="p-6 relative">
+                  <p className="text-sm text-slate-600 leading-relaxed mb-6">
                     {leader.bio}
                   </p>
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">Profile Verified</span>
+                    <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-100">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold">ACTIVE</span>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                  <span>VERIFIED ID // NODE_{i+1}</span>
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-sm" />
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* INTERACTIVE FAQ ACCORDION */}
-        <div className="space-y-8 border-t border-slate-150 pt-16">
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-100 bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-750 font-sans">
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={containerVariants}
+        >
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-4 py-1.5 text-xs font-bold text-fuchsia-700 uppercase tracking-widest shadow-sm mb-6">
               <HelpCircle className="h-4 w-4 text-fuchsia-600" />
-              <span>COMMONLY ENCOUNTERED PARADOXES</span>
+              <span>Common Queries</span>
             </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold text-slate-900 text-center">Frequently Answered Queries</h2>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto">
-              Confirm your understanding of our academic allocations, timing loops, and verifiable document matrices.
-            </p>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Frequently Asked Questions</h2>
           </div>
 
           <div className="max-w-3xl mx-auto space-y-4">
             {FAQS.map((faq, index) => {
               const isOpen = openFaqIndex === index;
               return (
-                <div 
+                <motion.div 
                   key={index} 
-                  className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs transition-all duration-200"
+                  variants={itemVariants}
+                  className="rounded-2xl border border-slate-200/80 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                 >
                   <button
                     onClick={() => toggleFaq(index)}
-                    className="w-full flex justify-between items-center gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors"
+                    className="w-full flex justify-between items-center gap-4 px-6 py-5 text-left focus:outline-none"
                   >
-                    <span className="font-display font-bold text-xs sm:text-sm text-slate-800">
+                    <span className={`font-bold text-sm sm:text-base transition-colors ${isOpen ? 'text-blue-600' : 'text-slate-800'}`}>
                       {faq.question}
                     </span>
-                    {isOpen ? (
-                      <ChevronDown className="h-4 w-4 text-blue-600 shrink-0 transform rotate-180 transition-transform duration-200" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200" />
-                    )}
+                    <div className={`p-1.5 rounded-full transition-colors ${isOpen ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
+                      <ChevronDown className={`h-5 w-5 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                    </div>
                   </button>
 
-                  {isOpen && (
-                    <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/55">
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pb-6 pt-2">
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
           </div>
-        </div>
+        </motion.div>
 
       </div>
     </div>
