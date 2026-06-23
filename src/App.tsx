@@ -28,7 +28,46 @@ function PageLoader() {
 }
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<string>('home');
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path === '/verification' || path === '/verificaton') return 'verify';
+    if (path === '/internships') return 'internships';
+    if (path === '/about') return 'about';
+    if (path === '/enroll') return 'enroll';
+    if (path === '/nexus') return 'nexus';
+    if (path === '/placements') return 'placements';
+    if (path === '/admin') return 'admin';
+    return 'home';
+  });
+
+  // Sync URL with current tab
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    let targetPath = '/';
+    if (currentTab === 'verify') targetPath = '/verification';
+    else if (currentTab !== 'home') targetPath = `/${currentTab}`;
+    
+    if (currentPath !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+    }
+  }, [currentTab]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/verification' || path === '/verificaton') setCurrentTab('verify');
+      else if (path === '/internships') setCurrentTab('internships');
+      else if (path === '/about') setCurrentTab('about');
+      else if (path === '/enroll') setCurrentTab('enroll');
+      else if (path === '/nexus') setCurrentTab('nexus');
+      else if (path === '/placements') setCurrentTab('placements');
+      else if (path === '/admin') setCurrentTab('admin');
+      else setCurrentTab('home');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [enrollments, setEnrollments] = useState<EnrollmentState[]>([]);
   const [preselectedDomainId, setPreselectedDomainId] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<StudentUser | null>(null);
