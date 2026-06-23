@@ -21,7 +21,7 @@ interface AdminPanelProps {
   setCurrentTab: (tab: string) => void;
 }
 
-type AdminSection = 'dashboard' | 'users' | 'certificates' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView';
 
 // ─── Helper: resolve domain title from domainId ───
 function getDomainTitle(domainId: string): string {
@@ -720,6 +720,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     { id: 'domains', label: 'Domain Management', icon: Globe },
     { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
     { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
+    { id: 'testResultsView', label: 'Test Results', icon: CheckCircle, badge: testResults.length },
     { id: 'logs', label: 'Activity Logs', icon: Activity, badge: logs.length },
     { id: 'errors', label: 'Error Reports', icon: AlertTriangle, badge: activeErrors },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
@@ -2129,6 +2130,50 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
             </motion.div>
           )}
 
+          {/* ═══ TEST RESULTS SECTION ═══ */}
+          {activeSection === 'testResultsView' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Student Test Results</h2>
+                  <p className="text-xs text-slate-500 mt-1">View and manage all MCQ test results across domains.</p>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                {testResults.length > 0 ? (
+                  <table className="w-full text-xs">
+                    <thead><tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-4 py-3 font-bold text-slate-600">Student Email</th>
+                      <th className="text-left px-4 py-3 font-bold text-slate-600">Domain</th>
+                      <th className="text-center px-4 py-3 font-bold text-slate-600">Score</th>
+                      <th className="text-center px-4 py-3 font-bold text-slate-600">Status</th>
+                      <th className="text-right px-4 py-3 font-bold text-slate-600">Date</th>
+                    </tr></thead>
+                    <tbody>
+                      {testResults.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map(r => (
+                        <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="px-4 py-3 text-slate-800 font-medium">{r.studentEmail}</td>
+                          <td className="px-4 py-3 text-slate-600">{getDomainTitle(r.domainId)}</td>
+                          <td className="px-4 py-3 text-center font-bold">{r.score}%</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${r.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{r.passed ? 'PASS' : 'FAIL'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-slate-500">{new Date(r.completedAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-12 text-slate-400 text-sm">
+                    <CheckCircle className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                    No test results recorded yet.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
         </div>
       </main>
 
@@ -2550,6 +2595,28 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</span>
                     <p className="text-sm font-medium text-slate-800 capitalize">{viewingStudent.status || 'Pending'}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle className="h-4 w-4 text-emerald-500" /> MCQ Test Results</h4>
+                  <div className="space-y-3">
+                    {testResults.filter(tr => tr.studentEmail.toLowerCase() === viewingStudent.email.toLowerCase()).length > 0 ? (
+                      testResults.filter(tr => tr.studentEmail.toLowerCase() === viewingStudent.email.toLowerCase()).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map(tr => (
+                        <div key={tr.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">{getDomainTitle(tr.domainId)}</p>
+                            <p className="text-xs text-slate-500">{new Date(tr.completedAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-bold ${tr.passed ? 'text-emerald-600' : 'text-red-600'}`}>{tr.score}% - {tr.passed ? 'Passed' : 'Failed'}</p>
+                            <p className="text-xs text-slate-500">{tr.correctAnswers}/{tr.totalQuestions} correct</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500 italic">No tests taken yet.</p>
+                    )}
                   </div>
                 </div>
               </div>
