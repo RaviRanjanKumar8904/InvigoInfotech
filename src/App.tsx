@@ -1,6 +1,9 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 
-const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase();
+const ADMIN_EMAILS = [
+  (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(),
+  'sahpriyanshu71@gmail.com'
+];
 import Header from './components/Header';
 // Admin email from env
 import Footer from './components/Footer';
@@ -114,7 +117,7 @@ export default function App() {
             const userData = docSnap.data() as StudentUser;
             setCurrentUser(userData);
             // Only redirect admin to admin panel on auth state change
-            if (userData.email.toLowerCase() === ADMIN_EMAIL) {
+            if (ADMIN_EMAILS.includes(userData.email.toLowerCase())) {
               setCurrentTab('admin');
             }
           } else {
@@ -126,7 +129,7 @@ export default function App() {
               phone: '',
             };
             setCurrentUser(basicUser);
-            if (basicUser.email.toLowerCase() === ADMIN_EMAIL) {
+            if (ADMIN_EMAILS.includes(basicUser.email.toLowerCase())) {
               setCurrentTab('admin');
             }
           }
@@ -197,7 +200,7 @@ export default function App() {
 
   const handleLoginSuccess = (user: StudentUser) => {
     setCurrentUser(user);
-    if (user.email.toLowerCase() === ADMIN_EMAIL) {
+    if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
       setCurrentTab('admin');
     } else {
       // After login, redirect to HOME page instead of nexus
@@ -359,7 +362,7 @@ export default function App() {
           )}
 
           {currentTab === 'admin' && (
-            currentUser && currentUser.email.toLowerCase() === ADMIN_EMAIL ? (
+            currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()) ? (
               <AdminPanel 
                 currentUser={currentUser} 
                 setCurrentTab={setCurrentTab}

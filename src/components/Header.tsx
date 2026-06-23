@@ -15,8 +15,11 @@ interface HeaderProps {
 export default function Header({ currentTab, setCurrentTab, savedEnrollmentsCount, currentUser, onLogout, hasCompletedInternship }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase();
-  const isAdmin = currentUser && currentUser.email.toLowerCase() === ADMIN_EMAIL;
+  const ADMIN_EMAILS = [
+    (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase(),
+    'sahpriyanshu71@gmail.com'
+  ];
+  const isAdmin = currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase());
 
   const navItems = [
     { id: 'home', label: 'Home' },
