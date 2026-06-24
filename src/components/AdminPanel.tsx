@@ -1400,11 +1400,11 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white font-medium">
                     {testSubmissions.filter(s => s.status === 'pending_grade').map(sub => {
-                      const enr = allEnrollments.find(e => e.candidateId === sub.enrollmentId);
+                      const enr = allEnrollments.find(e => e.candidateId === (sub.candidateId || sub.enrollmentId));
                       return (
                         <tr key={sub.id} className="hover:bg-slate-50">
                           <td className="py-3 px-4">
-                            <div className="font-bold text-slate-800">{enr?.fullName || sub.enrollmentId}</div>
+                            <div className="font-bold text-slate-800">{enr?.fullName || sub.candidateId || sub.enrollmentId}</div>
                             <div className="text-[10px] text-slate-400">{enr?.email || ''}</div>
                           </td>
                           <td className="py-3 px-4">{getDomainTitle(sub.domainId)}</td>
@@ -1431,7 +1431,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                 if (enr) {
                                   await updateDoc(doc(db, 'enrollments', enr.candidateId), { testScore: score, testPassed: passed, testCompletedAt: new Date().toISOString() });
                                 }
-                                addLog(`Graded test for ${enr?.fullName || sub.enrollmentId} - Score: ${score}%`, 'user');
+                                addLog(`Graded test for ${enr?.fullName || sub.candidateId || sub.enrollmentId} - Score: ${score}%`, 'user');
                               } catch (e) { console.error(e); alert('Error grading test'); }
                             }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95">
                               Grade Test
