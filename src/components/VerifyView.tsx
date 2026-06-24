@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { ShieldCheck, Search, Award, CheckCircle, Clock, Calendar, Download, RefreshCw, Layers, GraduationCap, CornerDownRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { EnrollmentState } from '../types';
 import { INTERNSHIP_DOMAINS } from '../data';
@@ -17,17 +17,23 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
   const [searchResult, setSearchResult] = useState<any | null>(null);
   const [searched, setSearched] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyId = params.get('verify');
+    if (verifyId && !searched && enrollments.length > 0) {
+      setCertId(verifyId);
+      // We need a dummy event object since handleVerify expects FormEvent
+      const dummyEvent = { preventDefault: () => {} } as FormEvent;
+      // Because handleVerify uses certId state, which might not be updated yet, we can't just call handleVerify(dummyEvent) synchronously with the right certId.
+    }
+  }, [enrollments]);
 
-  // Ready-to-verify demo certificates so the screen is interactive immediately
-
-
-  const handleVerify = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!certId.trim()) return;
-
+  // Create a separate verify logic that accepts an ID directly
+  const executeVerification = async (idToVerify: string) => {
+    if (!idToVerify.trim()) return;
     setSearched(true);
     setIsVerifying(true);
-    const cleanedId = certId.trim().toUpperCase();
+    const cleanedId = idToVerify.trim().toUpperCase();
 
     let baseSearchId = cleanedId;
     if (/^\d{2}IN/.test(cleanedId)) {
@@ -57,8 +63,6 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
       setIsVerifying(false);
       return;
     }
-
-
 
     // 3. Search Firestore database
     try {
@@ -98,24 +102,34 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
           durationWeeks: remoteEnroll.durationWeeks,
           startDate: remoteEnroll.startDate,
           status: remoteEnroll.status,
-          completionDate: remoteEnroll.status === 'Completed' ? remoteEnroll.enrollmentDate : 'Underway',
-          grade: remoteEnroll.status === 'Completed' ? 'Grade A Passed' : 'Ongoing',
-          verificationStatus: 'Remote cloud registry match synchronized',
-          rawEnrollment: remoteEnroll
+          completionDate: remoteEnroll.certificateDate || 'Verified & Active',
+          grade: remoteEnroll.testScore && remoteEnroll.testScore >= 80 ? 'Excellent' : remoteEnroll.testScore && remoteEnroll.testScore >= 60 ? 'Good' : 'Grade A Passed',
+          verificationStatus: remoteEnroll.certificateIssued ? 'Authentic Certificate Issued' : 'Active Student Record Verified'
         });
       } else {
         setSearchResult(null);
       }
-    } catch (e) {
-      console.warn('Firestore code lookup error:', e);
+    } catch (err) {
+      console.error(err);
       setSearchResult(null);
-    } finally {
-      setIsVerifying(false);
     }
+    setIsVerifying(false);
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyId = params.get('verify');
+    // Only auto-run if we haven't searched yet and we either have enrollments or waited a bit
+    if (verifyId && !searched) {
+      setCertId(verifyId);
+      executeVerification(verifyId);
+    }
+  }, []); // Run on mount
 
-
+  const handleVerify = async (e: FormEvent) => {
+    e.preventDefault();
+    executeVerification(certId);
+  };
   return (
     <div className="py-12 bg-transparent text-slate-800 min-h-[750px]">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-8">

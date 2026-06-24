@@ -38,6 +38,9 @@ function PageLoader() {
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('verify')) return 'verify';
+    
     const path = window.location.pathname.toLowerCase();
     if (path === '/verification' || path === '/verificaton') return 'verify';
     if (path === '/internships') return 'internships';

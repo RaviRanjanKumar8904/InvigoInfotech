@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/cert/(.*)",
+      "destination": "/api/cert?id=$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

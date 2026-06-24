@@ -4,7 +4,7 @@ import {
   User, Sparkles, Send, CheckSquare, PlusCircle, BookOpen, AlertTriangle, 
   ExternalLink, Trophy, Sparkle, Download, RefreshCw, MessageSquare, Laptop, 
   Check, Play, Video, HelpCircle, FileText, ArrowRight, Compass, TrendingUp,
-  Camera, Save, Lock, Unlock, FileType, XCircle, X
+  Camera, Save, Lock, Unlock, FileType, XCircle, X, Linkedin
 } from 'lucide-react';
 import { INTERNSHIP_DOMAINS } from '../data';
 import { EnrollmentState, StudyMaterial, MCQQuestion } from '../types';
@@ -1115,7 +1115,19 @@ export default function StudentNexus({
                           className="flex-grow py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 active:scale-98 transition-all cursor-pointer shadow-md inline-flex items-center justify-center"
                         >
                           <Download className="h-4 w-4 text-white" />
-                          <span>Download Certificate (PDF)</span>
+                          <span>Download PDF</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/cert/${activeEnrollment.candidateId}`;
+                            const text = `I just completed a ${activeEnrollment.durationWeeks}-week Virtual Internship Program in ${matchedDomain.title} at Invigo Infotech! Check out my certificate:`;
+                            window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+                          }}
+                          className="flex-grow py-3 bg-[#0a66c2] hover:bg-[#084e96] text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 active:scale-98 transition-all cursor-pointer shadow-md inline-flex items-center justify-center"
+                        >
+                          <Linkedin className="h-4 w-4 text-white fill-current" />
+                          <span>Share</span>
                         </button>
 
                         <button
