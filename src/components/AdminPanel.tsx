@@ -3308,6 +3308,14 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                 </div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Image URL (Optional)</label><input type="text" value={newDomain.imageUrl} onChange={e => setNewDomain({...newDomain, imageUrl: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="/images/my-domain.png" /></div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Skills (comma separated)</label><input type="text" value={newDomain.skills} onChange={e => setNewDomain({...newDomain, skills: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Target Degrees</label><input type="text" value={newDomain.targetDegrees} onChange={e => setNewDomain({...newDomain, targetDegrees: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="B.Tech, BCA" /></div>
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Tools & Tech</label><input type="text" value={newDomain.toolsAndTech} onChange={e => setNewDomain({...newDomain, toolsAndTech: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="React, Node.js" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Icon Name</label><input type="text" value={newDomain.iconName} onChange={e => setNewDomain({...newDomain, iconName: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="CodeXml" /></div>
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Gradient</label><input type="text" value={newDomain.gradient} onChange={e => setNewDomain({...newDomain, gradient: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="from-blue-500 to-indigo-600" /></div>
+                </div>
               </div>
               <div className="p-5 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0 bg-white">
                 <button onClick={() => setShowAddDomainModal(false)} className="px-4 py-2 border rounded-xl font-bold">Cancel</button>

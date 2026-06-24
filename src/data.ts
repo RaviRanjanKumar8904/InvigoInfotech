@@ -20,6 +20,7 @@ export const DOMAIN_IMAGES: Record<string, string> = {
   csharp_programming: '/domain_csharp_programming.png',
   go_programming: '/domain_go_programming.png',
   rust_programming: '/domain_rust_programming.png',
+  css_design: '/domain_css_design.png',
 };
 
 // Branch options per degree for branch-wise filtering
@@ -621,7 +622,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'c_programming',
     title: 'C Programming',
-    category: 'Software',
+    category: 'Tech',
     shortDesc: 'Master the fundamental concepts of C programming, pointers, memory management, and system-level logic.',
     iconName: 'Code',
     durationWeeks: [4, 8],
@@ -640,7 +641,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'cpp_programming',
     title: 'C++ Programming',
-    category: 'Software',
+    category: 'Tech',
     shortDesc: 'Dive into object-oriented C++, advanced STL libraries, and performance-critical software development.',
     iconName: 'FileCode',
     durationWeeks: [4, 8, 12],
@@ -659,7 +660,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'java_programming',
     title: 'Java Programming',
-    category: 'Software',
+    category: 'Tech',
     shortDesc: 'Learn core Java programming, object-oriented concepts, exception handling, and GUI development.',
     iconName: 'Coffee',
     durationWeeks: [4, 8],
@@ -678,7 +679,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'csharp_programming',
     title: 'C# / .NET Programming',
-    category: 'Software',
+    category: 'Tech',
     shortDesc: 'Master enterprise-level application development using C# and the powerful .NET framework ecosystems.',
     iconName: 'Layout',
     durationWeeks: [4, 8, 12],
@@ -716,7 +717,7 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
   {
     id: 'rust_programming',
     title: 'Rust Programming',
-    category: 'Software',
+    category: 'Tech',
     shortDesc: 'Write highly-secure, blazingly fast systems software with zero-cost abstractions and memory safety guarantees.',
     iconName: 'Shield',
     durationWeeks: [4, 8, 12],
@@ -730,6 +731,25 @@ export const INTERNSHIP_DOMAINS: InternshipDomain[] = [
       { title: 'Rust Syntax & Ownership', description: 'Learn the strict ownership model, borrowing rules, and lifetimes in Rust.', deliverables: ['Memory-safe string and data parsers', 'Ownership tracking charts'] },
       { title: 'Advanced Systems Logic', description: 'Implement traits, macros, and unsafe Rust capabilities for system tuning.', deliverables: ['Custom trait implementations', 'Performance tuning tests'] },
       { title: 'Secure Systems Capstone', description: 'Build a secure, high-speed network utility or WebAssembly module.', deliverables: ['Functional system-level tool', 'Memory allocation profiling report'] }
+    ]
+  },
+  {
+    id: 'css_design',
+    title: 'CSS & UI Design',
+    category: 'Design',
+    shortDesc: 'Master advanced CSS styling, responsive layouts, animations, and premium frontend aesthetics.',
+    iconName: 'Sparkles',
+    durationWeeks: [4, 8],
+    targetDegrees: ['B.Tech', 'BCA', 'Diploma', 'BA'],
+    targetBranches: ['CSE', 'IT'],
+    skills: ['Advanced CSS', 'Flexbox & Grid', 'UI/UX Design', 'CSS Animations'],
+    toolsAndTech: ['CSS3', 'Sass', 'Tailwind CSS', 'Figma'],
+    gradient: 'from-pink-500 via-purple-500 to-indigo-600',
+    imageUrl: '/domain_css_design.png',
+    phases: [
+      { title: 'Core Layout & Responsive Design', description: 'Master CSS Grid, Flexbox, media queries, and mobile-first methodologies.', deliverables: ['Responsive grid layouts', 'Mobile-first landing page'] },
+      { title: 'Styling Architecture', description: 'Implement CSS variables, Sass features, and maintainable styling structures.', deliverables: ['Reusable styling system', 'Component library styles'] },
+      { title: 'Advanced UI & Animations', description: 'Create stunning micro-interactions, keyframe animations, and premium glassmorphism effects.', deliverables: ['Interactive UI prototype', 'Premium aesthetic dashboard design'] }
     ]
   }
 ];
