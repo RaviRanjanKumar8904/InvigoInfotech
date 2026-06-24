@@ -2661,15 +2661,15 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       <th className="text-right px-4 py-3 font-bold text-slate-600">Date</th>
                     </tr></thead>
                     <tbody>
-                      {testResults.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map(r => (
+                      {testResults.sort((a, b) => new Date(b.completedAt || b.gradedAt || b.submittedAt || 0).getTime() - new Date(a.completedAt || a.gradedAt || a.submittedAt || 0).getTime()).map(r => (
                         <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-800 font-medium">{r.studentEmail}</td>
+                          <td className="px-4 py-3 text-slate-800 font-medium">{r.studentEmail || r.enrollmentId || 'Unknown'}</td>
                           <td className="px-4 py-3 text-slate-600">{getDomainTitle(r.domainId)}</td>
                           <td className="px-4 py-3 text-center font-bold">{r.score}%</td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${r.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{r.passed ? 'PASS' : 'FAIL'}</span>
                           </td>
-                          <td className="px-4 py-3 text-right text-slate-500">{new Date(r.completedAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-right text-slate-500">{new Date(r.completedAt || r.gradedAt || r.submittedAt || new Date()).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2922,7 +2922,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                             <div className="text-[10px] text-slate-400">{enr?.email || ''}</div>
                           </td>
                           <td className="py-3 px-4">
-                            <p className="text-slate-600 line-clamp-1 max-w-md">{msg.content}</p>
+                            <p className="text-slate-600 line-clamp-1 max-w-md">{msg.body || msg.content}</p>
                           </td>
                           <td className="py-3 px-4 text-slate-500">{new Date(msg.sentAt).toLocaleString()}</td>
                           <td className="py-3 px-4 text-center">
@@ -2978,7 +2978,12 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   try {
                     await addDoc(collection(db, 'adminMessages'), {
                       studentId: messagingStudent.candidateId,
+                      toEmail: messagingStudent.email.toLowerCase(),
+                      toName: messagingStudent.fullName,
+                      subject: 'Message from Admin',
+                      body: msgContent.trim(),
                       content: msgContent.trim(),
+                      sentBy: currentUser?.email || 'admin@invigo.co',
                       sentAt: new Date().toISOString(),
                       read: false
                     });

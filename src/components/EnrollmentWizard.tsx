@@ -107,7 +107,7 @@ export default function EnrollmentWizard({
       let found: Coupon | null = null;
       querySnapshot.forEach((doc) => {
         const c = doc.data() as Coupon;
-        if (c.code.toUpperCase() === codeToApply.trim().toUpperCase()) {
+        if (c.code && typeof c.code === 'string' && c.code.toUpperCase() === codeToApply.trim().toUpperCase()) {
           found = c;
         }
       });
@@ -123,7 +123,10 @@ export default function EnrollmentWizard({
         const userEnrollmentsSnap = await getDocs(q);
         
         const hasAnyEnrollment = !userEnrollmentsSnap.empty;
-        const usedThisCoupon = userEnrollmentsSnap.docs.some(d => d.data().appliedCouponCode === found!.code);
+        const usedThisCoupon = userEnrollmentsSnap.docs.some(d => {
+          const appliedCode = d.data().appliedCouponCode;
+          return appliedCode && typeof appliedCode === 'string' && appliedCode.toUpperCase() === found!.code.toUpperCase();
+        });
 
         if (usedThisCoupon) {
           setCouponError('You have already used this coupon code. It can only be used once per account.');
@@ -131,7 +134,7 @@ export default function EnrollmentWizard({
           return false;
         }
 
-        if (found.code === 'IAMNEW' && hasAnyEnrollment) {
+        if (found.code.toUpperCase() === 'IAMNEW' && hasAnyEnrollment) {
           setCouponError('The IAMNEW coupon is only valid for new users on their first enrollment.');
           setAppliedCoupon(null);
           return false;
@@ -211,7 +214,7 @@ export default function EnrollmentWizard({
 
   const generateCandidateId = () => {
     const year = new Date().getFullYear();
-    const cleanReg = formData.registrationNo ? formData.registrationNo.replace(/\s+/g, '').toUpperCase() : Math.floor(1000 + Math.random() * 9000).toString();
+    const cleanReg = formData.registrationNo ? formData.registrationNo.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() : Math.floor(1000 + Math.random() * 9000).toString();
     const last4Reg = cleanReg.length >= 4 ? cleanReg.slice(-4) : cleanReg.padStart(4, '0');
     const courseCode = formData.domainId ? formData.domainId.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase() : 'XX';
     return `${year}IN${courseCode}${last4Reg}`;
