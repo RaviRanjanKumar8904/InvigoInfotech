@@ -21,7 +21,7 @@ interface AdminPanelProps {
   currentUser: any;
   setCurrentTab: (tab: string) => void;
 }
-type AdminSection = 'dashboard' | 'users' | 'certificates' | 'certRequests' | 'testSubmissions' | 'analytics' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView' | 'coupons' | 'mentorBookings' | 'settings';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'certRequests' | 'analytics' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView' | 'coupons' | 'mentorBookings' | 'settings';
 // ─── Helper: resolve domain title from domainId ───
 function getDomainTitle(domainId: string): string {
   const domain = INTERNSHIP_DOMAINS.find(d => d.id === domainId);
@@ -149,7 +149,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [mentorBookings, setMentorBookings] = useState<any[]>([]);
   
   // Test Submissions
-  const [testSubmissions, setTestSubmissions] = useState<any[]>([]);
+
 
   // Communication / Messages
   const [adminMessages, setAdminMessages] = useState<any[]>([]);
@@ -261,14 +261,6 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       setErrors(fetchedErrors);
     });
 
-    // Load test submissions
-    const subCol = collection(db, 'testSubmissions');
-    const unsubSub = onSnapshot(subCol, snap => {
-      const subs: any[] = [];
-      snap.forEach(d => subs.push({ id: d.id, ...d.data() }));
-      subs.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-      setTestSubmissions(subs);
-    }, () => {});
 
     // Load admin messages
     const msgCol = collection(db, 'adminMessages');
@@ -348,7 +340,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       setMentorBookings(bookings);
     }, () => {});
 
-    return () => { unsubscribe(); unsubDomains(); unsubMaterials(); unsubQuestions(); unsubResults(); unsubCoupons(); unsubAdmins(); unsubBookings(); unsubSettings(); unsubLogs(); unsubErrors(); unsubSub(); unsubMsg(); };
+    return () => { unsubscribe(); unsubDomains(); unsubMaterials(); unsubQuestions(); unsubResults(); unsubCoupons(); unsubAdmins(); unsubBookings(); unsubSettings(); unsubLogs(); unsubErrors(); unsubMsg(); };
   }, []);
 
   // ─── Helpers ───
@@ -903,7 +895,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     { id: 'domains', label: 'Domain Management', icon: Globe },
     { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
     { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
-    { id: 'testSubmissions', label: 'Test Queue', icon: FileQuestion, badge: testSubmissions.filter(s => s.status === 'pending_grade').length },
+
     { id: 'testResultsView', label: 'Test Results', icon: CheckCircle, badge: testResults.length },
     { id: 'coupons', label: 'Coupons', icon: Tag, badge: allCoupons.length },
     { id: 'mentorBookings', label: 'Mentor Bookings', icon: Calendar, badge: mentorBookings.length },
@@ -1374,74 +1366,6 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     ))}
                     {allEnrollments.filter(e => e.certificateRequested && !e.certificateIssued).length === 0 && (
                       <tr><td colSpan={6} className="py-8 text-center text-slate-400">No pending requests.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════ TEST SUBMISSIONS SECTION ═══════════════════════ */}
-          {activeSection === 'testSubmissions' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Test Queue</h2>
-              </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                  <thead className="bg-slate-50 font-bold uppercase tracking-wider text-[10px] text-slate-500">
-                    <tr>
-                      <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Domain</th>
-                      <th className="py-3 px-4">Submitted At</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white font-medium">
-                    {testSubmissions.filter(s => s.status === 'pending_grade').map(sub => {
-                      const enr = allEnrollments.find(e => e.candidateId === (sub.candidateId || sub.enrollmentId));
-                      return (
-                        <tr key={sub.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-800">{enr?.fullName || sub.candidateId || sub.enrollmentId}</div>
-                            <div className="text-[10px] text-slate-400">{enr?.email || ''}</div>
-                          </td>
-                          <td className="py-3 px-4">{getDomainTitle(sub.domainId)}</td>
-                          <td className="py-3 px-4 text-slate-500">{new Date(sub.submittedAt).toLocaleString()}</td>
-                          <td className="py-3 px-4 text-center"><span className="text-amber-600 bg-amber-50 px-2 py-1 rounded font-bold text-[10px]">Pending</span></td>
-                          <td className="py-3 px-4 text-right">
-                            <button onClick={async () => {
-                              try {
-                                const qSnap = await getDocs(query(collection(db, 'mcqQuestions'), where('domainId', 'in', [sub.domainId, 'general'])));
-                                let correct = 0;
-                                let total = 0;
-                                const fallbackQs = (DEFAULT_MCQ_QUESTIONS[sub.domainId] || []).concat(DEFAULT_MCQ_QUESTIONS['general'] || []);
-                                const qList = qSnap.empty ? fallbackQs : qSnap.docs.map(d => d.data() as MCQQuestion);
-                                for (const ans of sub.answers) {
-                                  const q = qList.find((x: any) => x.id === ans.questionId);
-                                  if (q && q.correctIndex === ans.selectedOptionIndex) correct++;
-                                  total++;
-                                }
-                                const score = total > 0 ? Math.round((correct / total) * 100) : 0;
-                                const passed = score >= 60;
-                                
-                                await updateDoc(doc(db, 'testSubmissions', sub.id), { status: 'graded', score, passed });
-                                await setDoc(doc(db, 'testResults', sub.id), { ...sub, score, passed, gradedAt: new Date().toISOString() });
-                                if (enr) {
-                                  await updateDoc(doc(db, 'enrollments', enr.candidateId), { testScore: score, testPassed: passed, testCompletedAt: new Date().toISOString() });
-                                }
-                                addLog(`Graded test for ${enr?.fullName || sub.candidateId || sub.enrollmentId} - Score: ${score}%`, 'user');
-                              } catch (e) { console.error(e); alert('Error grading test'); }
-                            }} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95">
-                              Grade Test
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {testSubmissions.filter(s => s.status === 'pending_grade').length === 0 && (
-                      <tr><td colSpan={5} className="py-8 text-center text-slate-400">No pending test submissions.</td></tr>
                     )}
                   </tbody>
                 </table>

@@ -211,13 +211,12 @@ export default function StudentNexus({
     // Fetch questions
     const qQuery = query(collection(db, 'mcqQuestions'), where('domainId', '==', activeEnrollment.domainId));
     const unsubQ = onSnapshot(qQuery, snap => {
-      const qs: Omit<MCQQuestion, 'correctIndex'>[] = [];
+      const qs: MCQQuestion[] = [];
       snap.forEach(d => {
-        const data = d.data();
-        qs.push({ id: d.id, domainId: data.domainId, question: data.question, options: data.options } as any);
+        qs.push({ id: d.id, ...d.data() } as MCQQuestion);
       });
       // Shuffle or just slice to 10 max
-      setQuestions(qs.slice(0, 10) as MCQQuestion[]);
+      setQuestions(qs.slice(0, 10));
     });
 
     // Fetch test results
@@ -326,20 +325,49 @@ export default function StudentNexus({
   const submitMCQTest = async () => {
     setIsSubmittingTest(true);
     try {
-      await addDoc(collection(db, 'testSubmissions'), {
+      let correct = 0;
+      let total = 0;
+
+      for (let i = 0; i < questions.length; i++) {
+        if (answers[i] === questions[i].correctIndex) {
+          correct++;
+        }
+        total++;
+      }
+
+      const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+      const passed = score >= 60;
+
+      // Save test result immediately
+      await addDoc(collection(db, 'testResults'), {
         studentEmail: activeEnrollment.email,
         domainId: activeEnrollment.domainId,
         candidateId: activeEnrollment.candidateId,
         answers: answers,
         questionIds: questions.map(q => q.id),
-        submittedAt: new Date().toISOString(),
-        status: 'pending_grade'
+        score,
+        passed,
+        gradedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+      });
+
+      // Automatically update student's enrollment status
+      await updateDoc(doc(db, 'enrollments', activeEnrollment.candidateId), {
+        testScore: score,
+        testPassed: passed,
+        testCompletedAt: new Date().toISOString()
       });
       
       setActiveTest(false);
-      alert('Test submitted! Your result will be updated shortly by our team.');
+
+      if (passed) {
+        alert(`Congratulations! You passed the test with a score of ${score}%. Your certificate is now unlocked!`);
+      } else {
+        alert(`You scored ${score}%. You need at least 60% to pass. Please review the materials and try again later.`);
+      }
     } catch (e) {
       console.error(e);
+      alert('Error submitting test. Please try again.');
     }
     setIsSubmittingTest(false);
   };
