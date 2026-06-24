@@ -14,7 +14,9 @@ service cloud.firestore {
     function isAdmin() {
       // IMPORTANT: Keep this list in sync with VITE_ADMIN_EMAIL in .env
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/adminList/$(request.auth.token.email.lower()));
+        (exists(/databases/$(database)/documents/adminList/$(request.auth.token.email.lower())) ||
+         request.auth.token.email.lower() == 'raviranjan8904@gmail.com' ||
+         request.auth.token.email.lower() == 'sahpriyanshu71@gmail.com');
     }
 
     function incoming() {
