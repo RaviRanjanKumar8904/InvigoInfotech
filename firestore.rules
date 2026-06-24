@@ -76,12 +76,12 @@ service cloud.firestore {
 
     // Test Results
     match /testResults/{resultId} {
-      allow create: if isSignedIn() 
+      allow create: if isAdmin() || (isSignedIn() 
                     && incoming().studentEmail.lower() == request.auth.token.email.lower()
                     && incoming().score is number 
                     && incoming().score >= 0 
                     && incoming().score <= 100
-                    && incoming().passed is bool;
+                    && incoming().passed is bool);
       allow read: if isAdmin() || (isSignedIn()
         && resource.data.studentEmail.lower() == request.auth.token.email.lower());
       allow update, delete: if isAdmin();
