@@ -178,13 +178,22 @@ export default function StudentNexus({
   const [isRetrying, setIsRetrying] = useState(false);
 
   // Material Progress (simulated via localStorage or we could use firestore)
-  const [unlockedMaterials, setUnlockedMaterials] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem(`invigo_progress_${activeEnrollment?.candidateId}`);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [0]; // First material is unlocked by default
-  });
+  const [unlockedMaterials, setUnlockedMaterials] = useState<number[]>([0]);
+
+  // On mount: load progress from Firestore
+  useEffect(() => {
+    if (!activeEnrollment?.candidateId) return;
+    const progressRef = doc(db, 'materialProgress', activeEnrollment.candidateId);
+    const unsub = onSnapshot(progressRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setUnlockedMaterials(data.completedIndexes || [0]);
+      } else {
+        setUnlockedMaterials([0]);
+      }
+    });
+    return () => unsub();
+  }, [activeEnrollment?.candidateId]);
 
   useEffect(() => {
     if (!activeEnrollment) return;
@@ -242,10 +251,20 @@ export default function StudentNexus({
     return () => { unsubMat(); unsubQ(); };
   }, [activeEnrollment]);
 
-  const handleMarkMaterialComplete = (index: number) => {
+  // On completion: write to Firestore
+  const handleMarkMaterialComplete = async (index: number) => {
     const newUnlocked = [...unlockedMaterials, index + 1];
     setUnlockedMaterials(newUnlocked);
-    localStorage.setItem(`invigo_progress_${activeEnrollment.candidateId}`, JSON.stringify(newUnlocked));
+    if (activeEnrollment?.candidateId) {
+      const progressRef = doc(db, 'materialProgress', activeEnrollment.candidateId);
+      await setDoc(progressRef, {
+        candidateId: activeEnrollment.candidateId,
+        email: activeEnrollment.email,
+        domainId: activeEnrollment.domainId,
+        completedIndexes: newUnlocked,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
   };
 
   const handlePaymentRetry = async () => {
@@ -275,18 +294,7 @@ export default function StudentNexus({
 
   
 
-  // Independent Study Hours calculation limits
-  const [extraStudyHours, setExtraStudyHours] = useState<number>(() => {
-    const emailKey = activeEnrollment?.email || 'guest';
-    const savedHours = localStorage.getItem(`invigo_study_hours_${emailKey}`);
-    return savedHours ? Number(savedHours) : 24;
-  });
 
-  useEffect(() => {
-    const emailKey = activeEnrollment?.email || 'guest';
-    const savedHours = localStorage.getItem(`invigo_study_hours_${emailKey}`);
-    setExtraStudyHours(savedHours ? Number(savedHours) : 24);
-  }, [activeEnrollment?.email]);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -328,14 +336,28 @@ export default function StudentNexus({
     setIsSubmittingTest(false);
   };
 
-  const handleMentorBooking = (e: FormEvent) => {
+  const handleMentorBooking = async (e: FormEvent) => {
     e.preventDefault();
-    setBookingSuccess({
-      date: mentorDate,
-      time: mentorTime,
-      trainer: selectedTrainer,
-      id: `MT-${Math.floor(1000 + Math.random() * 9000)}`
-    });
+    try {
+      await addDoc(collection(db, 'mentorBookings'), {
+        candidateId: activeEnrollment.candidateId,
+        email: activeEnrollment.email,
+        fullName: activeEnrollment.fullName,
+        trainer: selectedTrainer,
+        date: mentorDate,
+        time: mentorTime,
+        status: 'pending',
+        requestedAt: new Date().toISOString(),
+      });
+      setBookingSuccess({
+        date: mentorDate,
+        time: mentorTime,
+        trainer: selectedTrainer,
+        id: 'Pending confirmation — admin will share link via WhatsApp/email'
+      });
+    } catch (e) {
+      console.error('Booking failed:', e);
+    }
   };
 
   const handleCompileCertificate = async () => {
@@ -354,12 +376,7 @@ export default function StudentNexus({
 
   
 
-  const handleUpdateExtraHours = (val: number) => {
-    const newVal = Math.max(0, val);
-    setExtraStudyHours(newVal);
-    const emailKey = activeEnrollment?.email || 'guest';
-    localStorage.setItem(`invigo_study_hours_${emailKey}`, String(newVal));
-  };
+
 
   
 
@@ -903,7 +920,7 @@ export default function StudentNexus({
                     <p><span className="text-slate-500 text-[10px] block uppercase font-bold">Scheduled Mentor:</span> <strong className="text-slate-800">{bookingSuccess.trainer}</strong></p>
                     <p><span className="text-slate-500 text-[10px] block uppercase font-bold">Scheduled Date:</span> <strong className="text-slate-800">{bookingSuccess.date}</strong></p>
                     <p><span className="text-slate-500 text-[10px] block uppercase font-bold">Scheduled Time:</span> <strong className="text-slate-800">{bookingSuccess.time}</strong></p>
-                    <p><span className="text-slate-500 text-[10px] block uppercase font-bold">Zoom Link / Meeting ID:</span> <strong className="text-blue-600 underline font-mono font-bold">{bookingSuccess.id} (Zoom Room Entry Open)</strong></p>
+                    <p><span className="text-slate-500 text-[10px] block uppercase font-bold">Zoom Link / Meeting ID:</span> <strong className="text-blue-600 underline font-mono font-bold">{bookingSuccess.id} (Pending — link will be sent to your registered email)</strong></p>
                   </div>
                   <button
                     onClick={() => setBookingSuccess(null)}

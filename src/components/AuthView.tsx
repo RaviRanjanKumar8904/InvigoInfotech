@@ -47,21 +47,7 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
     } catch (e) {
       console.warn(e);
     }
-    // Pre-registered demo students
-    return [
-      {
-        id: 'user_dtu',
-        fullName: 'Priyanshu Ranjan',
-        email: 'priyanshu@university.edu',
-        phone: '9876543210',
-        password: 'password123',
-        collegeName: 'Delhi Technological University (DTU)',
-        degree: 'B.Tech',
-        fieldOfStudy: 'Computer Engineering',
-        currentYear: '3rd Year',
-        passingYear: '2027'
-      }
-    ];
+    return [];
   };
 
   // ─── Google Sign-In Handler ───
@@ -166,31 +152,7 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
         const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, loginPassword);
         fbUser = userCredential.user;
       } catch (authError: any) {
-        // Special case: If user logged in as demo student, auto register inside auth if not exists
-        if (trimmedEmail.toLowerCase() === 'priyanshu@university.edu' && loginPassword === 'password123') {
-          try {
-            const createCred = await createUserWithEmailAndPassword(auth, 'priyanshu@university.edu', 'password123');
-            fbUser = createCred.user;
-            // Write demo metadata
-            const demoProfile = {
-              fullName: 'Priyanshu Ranjan',
-              email: 'priyanshu@university.edu',
-              phone: '9876543210',
-              collegeName: 'Delhi Technological University (DTU)',
-              degree: 'B.Tech',
-              fieldOfStudy: 'Computer Engineering',
-              currentYear: '3rd Year',
-              passingYear: '2027',
-              uid: fbUser.uid,
-              createdAt: new Date().toISOString()
-            };
-            await setDoc(doc(db, 'students', fbUser.uid), demoProfile);
-          } catch (createError) {
-            throw authError; // fall through if already exists or fails
-          }
-        } else {
-          throw authError;
-        }
+        throw authError;
       }
 
       if (!fbUser) {
@@ -343,7 +305,7 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
       // Local storage fallback for maximum safety
       try {
         const users = getRegisteredUsers();
-        const updatedUsers = [...users, { ...newUserProfile, id: fbUser.uid, password: registerPassword }];
+        const updatedUsers = [...users, { ...newUserProfile, id: fbUser.uid }];
         localStorage.setItem('invigo_registered_students', JSON.stringify(updatedUsers));
       } catch (lsErr) {
         console.warn('Could not persist registration account locally:', lsErr);
@@ -378,11 +340,6 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
     }
   };
 
-  const handleQuickDemoFill = () => {
-    setLoginEmail('priyanshu@university.edu');
-    setLoginPassword('password123');
-    setIsLoginTab(true);
-  };
 
   return (
     <div className="py-12 bg-transparent text-slate-850 min-h-[700px] flex items-center font-sans">

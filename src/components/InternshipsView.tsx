@@ -264,6 +264,7 @@ export default function InternshipsView({
                       <img 
                         src={domain.imageUrl} 
                         alt={domain.title}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.jpg'; }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (

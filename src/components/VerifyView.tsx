@@ -19,47 +19,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Ready-to-verify demo certificates so the screen is interactive immediately
-  const demoCertificates = [
-    {
-      id: '2026IN25UG010748',
-      fullName: 'Priyanshu Ranjan',
-      degree: 'B.Tech',
-      collegeName: 'Delhi Technological University (DTU)',
-      domainId: 'ai_ml',
-      durationWeeks: 8,
-      startDate: '2026-06-15',
-      status: 'In Progress',
-      completionDate: 'August 10, 2026 (Scheduled)',
-      grade: 'Ongoing',
-      verificationStatus: 'Active enrollment verified'
-    },
-    {
-      id: '2025IN124578',
-      fullName: 'Ananya Sharma',
-      degree: 'B.Sc Computer Science',
-      collegeName: 'Miranda House, Delhi University',
-      domainId: 'full_stack',
-      durationWeeks: 12,
-      startDate: '2025-01-10',
-      status: 'Completed',
-      completionDate: 'April 04, 2025',
-      grade: 'Grade A+ (Distinction)',
-      verificationStatus: 'Verified ID matching original academic logs'
-    },
-    {
-      id: '2025IN987654',
-      fullName: 'Rahul Verma',
-      degree: 'Diploma in IT',
-      collegeName: 'Government Polytechnic',
-      domainId: 'cybersec',
-      durationWeeks: 8,
-      startDate: '2025-03-01',
-      status: 'Completed',
-      completionDate: 'April 26, 2025',
-      grade: 'Grade A',
-      verificationStatus: 'Verified ID matching original academic logs'
-    }
-  ];
+
 
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault();
@@ -98,16 +58,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
       return;
     }
 
-    // 2. Search demo list
-    const demoMatch = demoCertificates.find(d => {
-       const dbId = d.id.toUpperCase();
-       return dbId === cleanedId || dbId === baseSearchId || dbId.startsWith(baseSearchId + '-');
-    });
-    if (demoMatch) {
-      setSearchResult(demoMatch);
-      setIsVerifying(false);
-      return;
-    }
+
 
     // 3. Search Firestore database
     try {
@@ -163,13 +114,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
     }
   };
 
-  const handleQuickMatch = (id: string) => {
-    setCertId(id);
-    const match = demoCertificates.find(d => d.id === id);
-    setSearchResult(match || null);
-    setSearched(true);
-    setIsVerifying(false);
-  };
+
 
   return (
     <div className="py-12 bg-transparent text-slate-800 min-h-[750px]">

@@ -240,11 +240,6 @@ export default function App() {
     setCurrentUser(user);
     if (ADMIN_EMAILS.includes(user.email.toLowerCase())) {
       setCurrentTab('admin');
-    } else {
-      // After login, redirect to HOME page, unless they are in the middle of enrolling
-      if (currentTab !== 'enroll') {
-        setCurrentTab('home');
-      }
     }
   };
 
