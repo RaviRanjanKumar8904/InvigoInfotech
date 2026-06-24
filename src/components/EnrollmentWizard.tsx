@@ -97,9 +97,9 @@ export default function EnrollmentWizard({
     }
   }, [currentStep, formData.durationWeeks, formData.trainingMode, appliedCoupon]);
 
-  const handleApplyCoupon = async (autoCode?: string) => {
+  const handleApplyCoupon = async (autoCode?: string): Promise<boolean> => {
     const codeToApply = autoCode || couponCodeInput;
-    if (!codeToApply.trim()) return;
+    if (!codeToApply.trim()) return false;
     setIsApplyingCoupon(true);
     setCouponError('');
     try {
@@ -115,7 +115,7 @@ export default function EnrollmentWizard({
         if (!found.active || (found.expiresAt && new Date(found.expiresAt) < new Date())) {
           setCouponError('Invalid or expired coupon code.');
           setAppliedCoupon(null);
-          return;
+          return false;
         }
         // Fetch all past enrollments for this user
         const enrollmentsRef = collection(db, 'enrollments');
@@ -128,23 +128,26 @@ export default function EnrollmentWizard({
         if (usedThisCoupon) {
           setCouponError('You have already used this coupon code. It can only be used once per account.');
           setAppliedCoupon(null);
-          return;
+          return false;
         }
 
         if (found.code === 'IAMNEW' && hasAnyEnrollment) {
           setCouponError('The IAMNEW coupon is only valid for new users on their first enrollment.');
           setAppliedCoupon(null);
-          return;
+          return false;
         }
 
         setAppliedCoupon(found);
+        return true;
       } else {
         setCouponError('Invalid or inactive coupon code.');
         setAppliedCoupon(null);
+        return false;
       }
     } catch (err) {
       console.error(err);
       setCouponError('Failed to apply coupon.');
+      return false;
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -155,8 +158,9 @@ export default function EnrollmentWizard({
     const refCode = localStorage.getItem('referralCode');
     if (refCode && !appliedCoupon && !isApplyingCoupon && formData.email) {
       setCouponCodeInput(refCode);
-      handleApplyCoupon(refCode);
-      localStorage.removeItem('referralCode'); // only apply once
+      handleApplyCoupon(refCode).then((success) => {
+        if (success) localStorage.removeItem('referralCode');
+      });
     }
   }, [formData.email]); // Trigger when user signs in / email is available
 
@@ -240,7 +244,7 @@ export default function EnrollmentWizard({
         ...formData,
         email: formData.email.toLowerCase(),
         candidateId: generateCandidateId(),
-        enrollmentDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        enrollmentDate: new Date().toISOString(),
         status: 'Initiated',
         trainingMode: formData.trainingMode,
         amountPaid: finalAmount,
@@ -785,8 +789,8 @@ export default function EnrollmentWizard({
                 ) : (
                   <button
                     type="button"
-                    onClick={handleApplyCoupon}
-                    disabled={!couponCodeInput.trim() || isApplyingCoupon}
+                    onClick={() => handleApplyCoupon()}
+                    disabled={isApplyingCoupon || !couponCodeInput.trim()}
                     className="w-full sm:w-auto px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-400 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-1"
                   >
                     {isApplyingCoupon ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}

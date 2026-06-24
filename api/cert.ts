@@ -2,6 +2,15 @@ export const config = {
   runtime: 'edge',
 };
 
+function sanitizeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   const id = url.searchParams.get('id');
@@ -28,10 +37,10 @@ export default async function handler(req: Request) {
     if (res.ok) {
       const data = await res.json();
       if (data && data.fields) {
-        name = data.fields.fullName?.stringValue || name;
-        domain = data.fields.domainId?.stringValue || domain;
-        duration = data.fields.durationWeeks?.integerValue || duration;
+        name = sanitizeHtml(data.fields.fullName?.stringValue || name);
+        duration = sanitizeHtml(String(data.fields.durationWeeks?.integerValue || duration));
         
+        const rawDomain = data.fields.domainId?.stringValue || domain;
         const domainTitles: Record<string, string> = {
           'building_construction': 'Building Construction',
           'autocad': 'AutoCAD',
@@ -44,7 +53,7 @@ export default async function handler(req: Request) {
           'solidworks': 'Solidworks',
           'ic_engine': 'IC Engine Design',
         };
-        domain = domainTitles[domain] || domain.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        domain = sanitizeHtml(domainTitles[rawDomain] || rawDomain.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()));
       }
     } else {
       // It might have a suffix like -WEB_DEVELOPMENT. In the edge we can't easily query without a composite index, 

@@ -42,12 +42,14 @@ export default function App() {
     if (params.has('verify')) return 'verify';
     
     const path = window.location.pathname.toLowerCase();
+    // '/verificaton' is kept as a backward-compat alias for a historical URL typo
     if (path === '/verification' || path === '/verificaton') return 'verify';
     if (path === '/internships') return 'internships';
     if (path === '/about') return 'about';
     if (path === '/enroll') return 'enroll';
     if (path === '/nexus') return 'nexus';
     if (path === '/placements') return 'placements';
+    if (path === '/profile') return 'profile';
     if (path === '/admin') return 'admin';
     if (path.startsWith('/player')) return 'player';
     return 'home';
@@ -68,6 +70,7 @@ export default function App() {
     const currentPath = window.location.pathname;
     let targetPath = '/';
     if (currentTab === 'verify') targetPath = '/verification';
+    else if (currentTab === 'profile') targetPath = '/profile';
     else if (currentTab !== 'home') targetPath = `/${currentTab}`;
     
     if (currentPath !== targetPath) {
@@ -79,12 +82,14 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname.toLowerCase();
+      // '/verificaton' is kept as a backward-compat alias for a historical URL typo
       if (path === '/verification' || path === '/verificaton') setCurrentTab('verify');
       else if (path === '/internships') setCurrentTab('internships');
       else if (path === '/about') setCurrentTab('about');
       else if (path === '/enroll') setCurrentTab('enroll');
       else if (path === '/nexus') setCurrentTab('nexus');
       else if (path === '/placements') setCurrentTab('placements');
+      else if (path === '/profile') setCurrentTab('profile');
       else if (path === '/admin') setCurrentTab('admin');
       else if (path.startsWith('/player')) setCurrentTab('player');
       else setCurrentTab('home');
@@ -260,11 +265,11 @@ export default function App() {
       );
       await Promise.all(deletePromises);
       alert('All your enrollment records have been cleared from our systems.');
+      setEnrollments([]);
+      setCurrentTab('home');
     } catch (e: any) {
       alert(`Failed to clear enrollments: ${e.message}`);
     }
-    setEnrollments([]);
-    setCurrentTab('home');
   };
 
 

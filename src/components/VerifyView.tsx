@@ -17,16 +17,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
   const [searchResult, setSearchResult] = useState<any | null>(null);
   const [searched, setSearched] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const verifyId = params.get('verify');
-    if (verifyId && !searched && enrollments.length > 0) {
-      setCertId(verifyId);
-      // We need a dummy event object since handleVerify expects FormEvent
-      const dummyEvent = { preventDefault: () => {} } as FormEvent;
-      // Because handleVerify uses certId state, which might not be updated yet, we can't just call handleVerify(dummyEvent) synchronously with the right certId.
-    }
-  }, [enrollments]);
+
 
   // Create a separate verify logic that accepts an ID directly
   const executeVerification = async (idToVerify: string) => {
