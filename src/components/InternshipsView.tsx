@@ -37,8 +37,8 @@ export default function InternshipsView({
   const [selectedDomain, setSelectedDomain] = useState<InternshipDomain | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
 
-  const categories = ['All', 'Tech', 'Hardware', 'Management', 'Design'];
-  const degrees = ['All', 'B.Tech', 'Diploma', 'BCA', 'B.Sc', 'MBA', 'BA', 'B.Com'];
+  const categories = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.map(d => d.category)))];
+  const degrees = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.flatMap(d => d.targetDegrees)))];
   const degreeBranches = BRANCH_OPTIONS[selectedDegreeFilter] || [];
   const branches = ['All', ...degreeBranches];
 

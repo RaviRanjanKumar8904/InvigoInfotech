@@ -163,7 +163,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [firestoreDomains, setFirestoreDomains] = useState<InternshipDomain[]>([]);
   const [showAddDomainModal, setShowAddDomainModal] = useState(false);
   const [newDomain, setNewDomain] = useState({
-    title: '', category: 'Tech' as 'Tech' | 'Management' | 'Design' | 'Hardware',
+    title: '', category: 'Tech' as 'Tech' | 'Management' | 'Design' | 'Hardware' | 'Specialized',
     shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12',
     targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '',
     gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: ''
@@ -3227,7 +3227,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Domain Title</label><input type="text" value={newDomain.title} onChange={e => setNewDomain({...newDomain, title: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="e.g. Data Science & Analytics" /></div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Short Description</label><textarea value={newDomain.shortDesc} onChange={e => setNewDomain({...newDomain, shortDesc: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" rows={2} /></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Category</label><select value={newDomain.category} onChange={e => setNewDomain({...newDomain, category: e.target.value as any})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"><option>Tech</option><option>Management</option><option>Design</option><option>Hardware</option></select></div>
+                  <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Category</label><select value={newDomain.category} onChange={e => setNewDomain({...newDomain, category: e.target.value as any})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"><option>Tech</option><option>Management</option><option>Design</option><option>Hardware</option><option>Specialized</option></select></div>
                   <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Durations (comma separated)</label><input type="text" value={newDomain.durationWeeks} onChange={e => setNewDomain({...newDomain, durationWeeks: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
                 </div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Image URL (Optional)</label><input type="text" value={newDomain.imageUrl} onChange={e => setNewDomain({...newDomain, imageUrl: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="/images/my-domain.png" /></div>
