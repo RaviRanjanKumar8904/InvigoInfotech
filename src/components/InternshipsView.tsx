@@ -64,7 +64,12 @@ export default function InternshipsView({
     let matchesBranch = true;
     if (selectedBranchFilter !== 'All') {
       if (domain.targetBranches && domain.targetBranches.length > 0) {
-        matchesBranch = domain.targetBranches.includes(selectedBranchFilter);
+        const domainHasRestrictionsForThisDegree = domain.targetBranches.some(b => degreeBranches.includes(b));
+        if (domainHasRestrictionsForThisDegree) {
+          matchesBranch = domain.targetBranches.includes(selectedBranchFilter);
+        } else {
+          matchesBranch = true;
+        }
       }
     }
 
