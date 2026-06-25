@@ -64,17 +64,7 @@ export default function InternshipsView({
     let matchesBranch = true;
     if (selectedBranchFilter !== 'All') {
       if (domain.targetBranches && domain.targetBranches.length > 0) {
-        // Check if the domain's targetBranches restrict the currently selected degree
-        const domainHasRestrictionsForThisDegree = domain.targetBranches.some(b => degreeBranches.includes(b));
-        
-        if (domainHasRestrictionsForThisDegree) {
-          // If there are restrictions for this degree, enforce them
-          matchesBranch = domain.targetBranches.includes(selectedBranchFilter);
-        } else {
-          // If the domain has branch restrictions but NONE of them apply to the selected degree,
-          // assume the domain is open to all branches of this degree (since matchesDegree is true)
-          matchesBranch = true;
-        }
+        matchesBranch = domain.targetBranches.includes(selectedBranchFilter);
       }
     }
 
