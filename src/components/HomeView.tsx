@@ -461,6 +461,21 @@ export default function HomeView({
           </div>
         </div>
 
+        {/* AFFILIATIONS & PARTNERS */}
+        <div className="py-12 sm:py-16 border-t border-slate-200 mt-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Recognized, Certified & Incubated By</h3>
+          </div>
+          <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-14 md:gap-20 px-4">
+            <img src="/ISO_Logo.png" alt="ISO 9001:2015" title="ISO 9001:2015 Certified" className="h-12 sm:h-16 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+            <img src="/MInistory_of_corporate_affairs.jpeg" alt="Ministry of Corporate Affairs" title="Ministry of Corporate Affairs" className="h-14 sm:h-20 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+            <img src="/DPIIT_startup_india.png" alt="DPIIT Startup India" title="DPIIT Startup India" className="h-10 sm:h-14 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+            <img src="/startup_bihar.png" alt="Startup Bihar" title="Startup Bihar" className="h-10 sm:h-14 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+            <img src="/msme_logo.png" alt="MSME" title="MSME" className="h-12 sm:h-16 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+            <img src="/nit patna incubation center.jpg" alt="NIT Patna Incubation Center" title="NIT Patna Incubation Center" className="h-12 sm:h-16 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 mix-blend-multiply" />
+          </div>
+        </div>
+
       </div>
     </div>
   );
