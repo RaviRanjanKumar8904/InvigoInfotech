@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, Brain, CodeXml, ShieldAlert, BarChart4, Cpu, 
   Smartphone, Radio, Blocks, Sparkles, Wrench, Layers, Settings, 
   DollarSign, TrendingUp, Gamepad2, Grid, GraduationCap, Clock, 
-  BookOpen, AlignLeft, CheckCircle, ArrowRight, X 
+  BookOpen, AlignLeft, CheckCircle, ArrowRight, X, Share2, Link, Check 
 } from 'lucide-react';
 import { INTERNSHIP_DOMAINS, BRANCH_OPTIONS } from '../data';
 import { InternshipDomain } from '../types';
@@ -16,6 +16,8 @@ interface InternshipsViewProps {
   selectedDegreeFilter: string;
   setSelectedDegreeFilter: (degree: string) => void;
   onSelectDomainForEnrollment: (domainId: string) => void;
+  sharedCourseId?: string;
+  onClearSharedCourseId?: () => void;
 }
 
 // Icon mapper for dynamic matching of string values from data static models
@@ -31,11 +33,57 @@ export default function InternshipsView({
   setSelectedCategoryFilter,
   selectedDegreeFilter,
   setSelectedDegreeFilter,
-  onSelectDomainForEnrollment
+  onSelectDomainForEnrollment,
+  sharedCourseId,
+  onClearSharedCourseId
 }: InternshipsViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<InternshipDomain | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
+  const [shareToast, setShareToast] = useState<string | null>(null);
+
+  // Auto-open course detail modal when arriving via a shared course link
+  useEffect(() => {
+    if (sharedCourseId) {
+      const domain = INTERNSHIP_DOMAINS.find(d => d.id === sharedCourseId);
+      if (domain) {
+        setSelectedDomain(domain);
+        // Update URL to the clean course path
+        window.history.replaceState({}, '', `/course/${sharedCourseId}`);
+      }
+      onClearSharedCourseId?.();
+    }
+  }, [sharedCourseId]);
+
+  // Share a course link using Web Share API or clipboard fallback
+  const handleShareCourse = async (domainId: string, domainTitle: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareUrl = `${window.location.origin}/course/${domainId}`;
+    const shareData = {
+      title: `${domainTitle} — Invigo Infotech Internship`,
+      text: `Check out the ${domainTitle} internship program at Invigo Infotech! Apply now and get certified. 🎓`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      // User cancelled share or share failed — fall through to clipboard
+    }
+
+    // Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareToast(domainTitle);
+      setTimeout(() => setShareToast(null), 2500);
+    } catch {
+      // Last resort: prompt
+      window.prompt('Copy this course link:', shareUrl);
+    }
+  };
 
   const categories = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.map(d => d.category)))];
   const degrees = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.flatMap(d => d.targetDegrees)))];
@@ -343,6 +391,16 @@ export default function InternshipsView({
                       </button>
                     </div>
 
+                    {/* Share Course Button */}
+                    <button
+                      onClick={(e) => handleShareCourse(domain.id, domain.title, e)}
+                      className="w-full py-2 text-center text-[11px] font-semibold rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 text-slate-600 hover:text-blue-700 cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 group/share"
+                      title="Share this course"
+                    >
+                      <Share2 className="w-3.5 h-3.5 group-hover/share:text-blue-600 transition-colors" />
+                      <span>Share Course</span>
+                    </button>
+
                   </div>
 
                 </div>
@@ -486,25 +544,56 @@ export default function InternshipsView({
                 </div>
               </div>
 
-              {/* Action Buttons inside Modal */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => setSelectedDomain(null)}
-                  className="py-3 text-center text-xs font-bold rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                >
-                  Close Syllabus
-                </button>
-                <button
-                  onClick={() => handleEnrollClick(selectedDomain.id)}
-                  className="py-3 text-center text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
-                >
-                  <span>Initiate Matrix Enrollment</span>
-                  <ArrowRight className="w-4 h-4 text-white" />
-                </button>
+              {/* Share + Action Buttons inside Modal */}
+              <div className="space-y-3 pt-4 border-t border-slate-200">
+                {/* Share link bar */}
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <Link className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/course/${selectedDomain.id}`}
+                    className="flex-1 text-xs font-mono text-slate-600 bg-transparent border-none outline-none truncate select-all"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={() => handleShareCourse(selectedDomain.id, selectedDomain.title)}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors flex items-center gap-1.5 shrink-0"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setSelectedDomain(null)}
+                    className="py-3 text-center text-xs font-bold rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                  >
+                    Close Syllabus
+                  </button>
+                  <button
+                    onClick={() => handleEnrollClick(selectedDomain.id)}
+                    className="py-3 text-center text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                  >
+                    <span>Initiate Matrix Enrollment</span>
+                    <ArrowRight className="w-4 h-4 text-white" />
+                  </button>
+                </div>
               </div>
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Share Toast Notification */}
+      {shareToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] animate-bounce-in">
+          <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-semibold">Link copied for <span className="text-blue-300">{shareToast}</span></span>
           </div>
         </div>
       )}

@@ -44,6 +44,7 @@ export default function App() {
     const path = window.location.pathname.toLowerCase();
     // '/verificaton' is kept as a backward-compat alias for a historical URL typo
     if (path === '/verification' || path === '/verificaton') return 'verify';
+    if (path.startsWith('/course/')) return 'internships';
     if (path === '/internships') return 'internships';
     if (path === '/about') return 'about';
     if (path === '/enroll') return 'enroll';
@@ -53,6 +54,15 @@ export default function App() {
     if (path === '/admin') return 'admin';
     if (path.startsWith('/player')) return 'player';
     return 'home';
+  });
+
+  // Extract shared course ID from /course/:id URL for deep-linking
+  const [sharedCourseId, setSharedCourseId] = useState<string>(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path.startsWith('/course/')) {
+      return path.replace('/course/', '').replace(/\/$/, '');
+    }
+    return '';
   });
 
   // Sync URL with current tab and capture referral codes
@@ -84,6 +94,10 @@ export default function App() {
       const path = window.location.pathname.toLowerCase();
       // '/verificaton' is kept as a backward-compat alias for a historical URL typo
       if (path === '/verification' || path === '/verificaton') setCurrentTab('verify');
+      else if (path.startsWith('/course/')) {
+        setSharedCourseId(path.replace('/course/', '').replace(/\/$/, ''));
+        setCurrentTab('internships');
+      }
       else if (path === '/internships') setCurrentTab('internships');
       else if (path === '/about') setCurrentTab('about');
       else if (path === '/enroll') setCurrentTab('enroll');
@@ -388,6 +402,8 @@ export default function App() {
               selectedDegreeFilter={selectedDegreeFilter}
               setSelectedDegreeFilter={setSelectedDegreeFilter}
               onSelectDomainForEnrollment={handleSelectDomainForEnrollment}
+              sharedCourseId={sharedCourseId}
+              onClearSharedCourseId={() => setSharedCourseId('')}
             />
           )}
 
