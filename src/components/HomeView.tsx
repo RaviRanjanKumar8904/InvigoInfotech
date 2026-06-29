@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star } from 'lucide-react';
 import { motion } from 'motion/react';
-import { TESTIMONIALS, INTERNSHIP_DOMAINS } from '../data';
+import { TESTIMONIALS } from '../data';
+import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState } from '../types';
 
 interface HomeViewProps {
@@ -20,6 +21,7 @@ export default function HomeView({
   onClearEnrollments,
   onSelectDomainForEnrollment
 }: HomeViewProps) {
+  const allDomains = useDomains();
   
   const handleDegreeFocus = (degree: 'B.Tech' | 'Diploma' | 'BCA' | 'B.Sc' | 'MBA' | 'BA' | 'B.Com') => {
     setSelectedDegreeFilter(degree);
@@ -170,7 +172,7 @@ export default function HomeView({
                     We've set up your student learning space!
                   </h2>
                   <p className="text-slate-600 text-xs max-w-2xl leading-relaxed">
-                    You are currently registered in the <strong className="text-blue-600 uppercase">{INTERNSHIP_DOMAINS.find(d => d.id === enrollments[0].domainId)?.title || enrollments[0].domainId.replace('_', ' ')}</strong> cohort. 
+                    You are currently registered in the <strong className="text-blue-600 uppercase">{allDomains.find(d => d.id === enrollments[0].domainId)?.title || enrollments[0].domainId.replace('_', ' ')}</strong> cohort. 
                     Manage your progress, upload projects, and secure your verifiable certificate below:
                   </p>
                 </div>
@@ -326,7 +328,7 @@ export default function HomeView({
             <p className="text-slate-600 text-[11px] sm:text-base">The most popular, highly-rated offline and virtual internship programs.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
-            {INTERNSHIP_DOMAINS.slice(0, 5).map((domain, idx) => (
+            {allDomains.slice(0, 5).map((domain, idx) => (
                 <div key={domain.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col group h-full sm:h-72 min-h-[16rem] cursor-pointer" onClick={() => onSelectDomainForEnrollment ? onSelectDomainForEnrollment(domain.id) : setCurrentTab('enroll')}>
                   
                   {/* Domain Image Banner */}
@@ -368,7 +370,7 @@ export default function HomeView({
           </div>
           <div className="mt-6 sm:mt-8 text-center">
             <button onClick={() => setCurrentTab('internships')} className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-6 py-3 rounded-xl sm:bg-transparent sm:p-0">
-              View all {INTERNSHIP_DOMAINS.length} courses <ArrowRight className="h-4 w-4" />
+              View all {allDomains.length} courses <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>

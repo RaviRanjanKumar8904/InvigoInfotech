@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { ShieldCheck, Search, Award, CheckCircle, Clock, Calendar, Download, RefreshCw, Layers, GraduationCap, CornerDownRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { EnrollmentState } from '../types';
-import { INTERNSHIP_DOMAINS } from '../data';
+import { useDomains } from '../hooks/useDomains';
 import { motion } from 'motion/react';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -13,6 +13,7 @@ interface VerifyViewProps {
 }
 
 export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewProps) {
+  const allDomains = useDomains();
   const [certId, setCertId] = useState('');
   const [searchResult, setSearchResult] = useState<any | null>(null);
   const [searched, setSearched] = useState(false);
@@ -67,7 +68,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
       if (docSnap.exists()) {
         remoteEnroll = docSnap.data() as EnrollmentState;
       } else {
-        const domainSuffixes = INTERNSHIP_DOMAINS.map(d => `-${d.id.toUpperCase()}`);
+        const domainSuffixes = allDomains.map(d => `-${d.id.toUpperCase()}`);
         const fetchPromises = domainSuffixes.map(async (suffix) => {
           const docId = `${baseSearchId}${suffix}`;
           try {
@@ -241,7 +242,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-1">
                       <span className="text-[10px] uppercase text-slate-400 block font-bold">Course Field</span>
                       <p className="text-xs font-extrabold text-slate-850">
-                        {INTERNSHIP_DOMAINS.find(d => d.id === searchResult.domainId)?.title || "Specialized Tech Course"}
+                        {allDomains.find(d => d.id === searchResult.domainId)?.title || "Specialized Tech Course"}
                       </p>
                     </div>
 
@@ -277,7 +278,7 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
                       <button
                         onClick={() => {
                           if (searchResult.rawEnrollment) {
-                            const domainObj = INTERNSHIP_DOMAINS.find(d => d.id === searchResult.domainId);
+                            const domainObj = allDomains.find(d => d.id === searchResult.domainId);
                             downloadCertificatePDF(searchResult.rawEnrollment, domainObj ? domainObj.title : 'Advanced Technology Intern');
                           } else {
                             alert("Demo Certificate Verification PDF downloaded successfully!");

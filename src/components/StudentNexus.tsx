@@ -6,7 +6,7 @@ import {
   Check, Play, Video, HelpCircle, FileText, ArrowRight, Compass, TrendingUp,
   Camera, Save, Lock, Unlock, FileType, XCircle, X, Linkedin
 } from 'lucide-react';
-import { INTERNSHIP_DOMAINS } from '../data';
+import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState, StudyMaterial, MCQQuestion } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { downloadCertificatePDF, downloadOfferLetterPDF } from '../utils/pdfGenerator';
@@ -149,13 +149,14 @@ export default function StudentNexus({
   // Removed unused props from destructuring
   currentUser
 }: StudentNexusProps) {
+  const allDomains = useDomains();
   const hasEnrolled = enrollments.length > 0;
   
   const activeEnrollments = enrollments;
   const [selectedEnrollmentIdx, setSelectedEnrollmentIdx] = useState(0);
   const activeEnrollment = activeEnrollments[selectedEnrollmentIdx];
 
-  const matchedDomain = INTERNSHIP_DOMAINS.find(domain => domain.id === activeEnrollment?.domainId) || INTERNSHIP_DOMAINS[0];
+  const matchedDomain = allDomains.find(domain => domain.id === activeEnrollment?.domainId) || allDomains[0];
 
   // Active sub-sections (Samsung One UI segmented control)
   const [activeSubTab, setActiveSubTab] = useState<'homework' | 'certificate' | 'roadmap' | 'messages'>('homework');
@@ -519,7 +520,7 @@ export default function StudentNexus({
                 >
                   {activeEnrollments.map((enroll, idx) => (
                     <option key={idx} value={idx}>
-                      {INTERNSHIP_DOMAINS.find(d => d.id === enroll.domainId)?.title.slice(0, 30) || enroll.domainId}... ({enroll.candidateId.split('-').pop()})
+                      {allDomains.find(d => d.id === enroll.domainId)?.title.slice(0, 30) || enroll.domainId}... ({enroll.candidateId.split('-').pop()})
                     </option>
                   ))}
                 </select>
@@ -1257,8 +1258,8 @@ export default function StudentNexus({
             };
 
             const currentDomainObj = matchedDomain;
-            const nextDomainObj = INTERNSHIP_DOMAINS.find(d => d.id === pathConfig.nextDomainId) || INTERNSHIP_DOMAINS[1];
-            const specialtyDomainObj = INTERNSHIP_DOMAINS.find(d => d.id === pathConfig.nextSpecialtyDomainId) || INTERNSHIP_DOMAINS[2];
+            const nextDomainObj = allDomains.find(d => d.id === pathConfig.nextDomainId) || allDomains[1];
+            const specialtyDomainObj = allDomains.find(d => d.id === pathConfig.nextSpecialtyDomainId) || allDomains[2];
 
             const activeShowcaseObj = selectedRoadmapNode === 'current' 
               ? currentDomainObj 

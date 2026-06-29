@@ -15,6 +15,7 @@ import { db } from '../firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, addDoc, query, where } from 'firebase/firestore';
 import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport, StudyMaterial, MCQQuestion, InternshipDomain, Coupon } from '../types';
 import { INTERNSHIP_DOMAINS, DEFAULT_MCQ_QUESTIONS } from '../data';
+import { useDomains } from '../hooks/useDomains';
 import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
 
 interface AdminPanelProps {
@@ -881,12 +882,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     } catch (err) { console.error(err); }
   };
 
-  // Get all domains (Firestore + hardcoded merged)
-  const allDomains = useMemo(() => {
-    const fsIds = firestoreDomains.map(d => d.id);
-    const hardcoded = INTERNSHIP_DOMAINS.filter(d => !fsIds.includes(d.id));
-    return [...firestoreDomains, ...hardcoded];
-  }, [firestoreDomains]);
+  // Get all domains (Firestore + hardcoded merged) via shared hook
+  const allDomains = useDomains();
 
   const navItems: { id: AdminSection; label: string; icon: any; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

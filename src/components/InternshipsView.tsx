@@ -5,8 +5,9 @@ import {
   DollarSign, TrendingUp, Gamepad2, Grid, GraduationCap, Clock, 
   BookOpen, AlignLeft, CheckCircle, ArrowRight, X, Share2, Link, Check 
 } from 'lucide-react';
-import { INTERNSHIP_DOMAINS, BRANCH_OPTIONS } from '../data';
+import { BRANCH_OPTIONS } from '../data';
 import { InternshipDomain } from '../types';
+import { useDomains } from '../hooks/useDomains';
 
 interface InternshipsViewProps {
   currentTab: string;
@@ -37,6 +38,7 @@ export default function InternshipsView({
   sharedCourseId,
   onClearSharedCourseId
 }: InternshipsViewProps) {
+  const allDomains = useDomains();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<InternshipDomain | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');
@@ -45,7 +47,7 @@ export default function InternshipsView({
   // Auto-open course detail modal when arriving via a shared course link
   useEffect(() => {
     if (sharedCourseId) {
-      const domain = INTERNSHIP_DOMAINS.find(d => d.id === sharedCourseId);
+      const domain = allDomains.find(d => d.id === sharedCourseId);
       if (domain) {
         setSelectedDomain(domain);
         // Update URL to the clean course path
@@ -85,8 +87,8 @@ export default function InternshipsView({
     }
   };
 
-  const categories = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.map(d => d.category)))];
-  const degrees = ['All', ...Array.from(new Set(INTERNSHIP_DOMAINS.flatMap(d => d.targetDegrees)))];
+  const categories = ['All', ...Array.from(new Set(allDomains.map(d => d.category)))];
+  const degrees = ['All', ...Array.from(new Set(allDomains.flatMap(d => d.targetDegrees)))];
   const degreeBranches = BRANCH_OPTIONS[selectedDegreeFilter] || [];
   const branches = ['All', ...degreeBranches];
 
@@ -96,7 +98,7 @@ export default function InternshipsView({
   }, [selectedDegreeFilter]);
 
   // Analytical computation mapping onto state variables
-  const filteredDomains = INTERNSHIP_DOMAINS.filter((domain) => {
+  const filteredDomains = allDomains.filter((domain) => {
     const matchesSearch = 
       domain.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       domain.shortDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -214,7 +216,7 @@ export default function InternshipsView({
             <div className="flex items-center justify-between lg:justify-end px-2 font-mono text-xs text-slate-500 gap-2 shrink-0">
               <span>Matching Coordinates:</span>
               <span className="bg-slate-50 px-3 py-1 rounded-full text-blue-600 font-bold border border-slate-200">
-                {filteredDomains.length} / {INTERNSHIP_DOMAINS.length}
+                {filteredDomains.length} / {allDomains.length}
               </span>
             </div>
           </div>

@@ -3,7 +3,7 @@ import {
   Sparkles, CheckCircle, GraduationCap, ChevronRight, User, Mail, 
   Phone, Calendar, BookOpen, Award, ArrowRight, Download, RefreshCw, BookmarkCheck, Tag
 } from 'lucide-react';
-import { INTERNSHIP_DOMAINS } from '../data';
+import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState, Coupon } from '../types';
 import { db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
@@ -71,6 +71,7 @@ export default function EnrollmentWizard({
   setCurrentTab,
   currentUser
 }: EnrollmentWizardProps) {
+  const allDomains = useDomains();
   // Wizard steps: 1 = Personal Details, 2 = Academic Data, 3 = Domain Configuration, 4 = Offer Synthesis
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -336,7 +337,7 @@ export default function EnrollmentWizard({
     }, 2500);
   };
 
-  const selectedDomainObject = INTERNSHIP_DOMAINS.find(domain => domain.id === formData.domainId) || INTERNSHIP_DOMAINS[0];
+  const selectedDomainObject = allDomains.find(domain => domain.id === formData.domainId) || allDomains[0];
 
   return (
     <div className="relative overflow-hidden bg-transparent text-slate-800 py-12 md:py-16">
@@ -601,7 +602,7 @@ export default function EnrollmentWizard({
                           onChange={(e) => setFormData({ ...formData, domainId: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                         >
-                          {INTERNSHIP_DOMAINS.map((domain) => (
+                          {allDomains.map((domain) => (
                             <option key={domain.id} value={domain.id}>
                               {domain.title} ({domain.category})
                             </option>
