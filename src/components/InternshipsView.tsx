@@ -88,7 +88,7 @@ export default function InternshipsView({
   };
 
   const categories = ['All', ...Array.from(new Set(allDomains.map(d => d.category)))];
-  const degrees = ['All', ...Array.from(new Set(allDomains.flatMap(d => d.targetDegrees)))];
+  const degrees = ['All', ...Array.from(new Set(allDomains.flatMap(d => d.targetDegrees || [])))];
   const degreeBranches = BRANCH_OPTIONS[selectedDegreeFilter] || [];
   const branches = ['All', ...degreeBranches];
 
@@ -100,16 +100,16 @@ export default function InternshipsView({
   // Analytical computation mapping onto state variables
   const filteredDomains = allDomains.filter((domain) => {
     const matchesSearch = 
-      domain.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      domain.shortDesc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      domain.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      domain.toolsAndTech.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      (domain.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (domain.shortDesc || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (domain.skills || []).some(skill => (skill || '').toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (domain.toolsAndTech || []).some(t => (t || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCategory = 
       selectedCategoryFilter === 'All' || domain.category === selectedCategoryFilter;
 
     const matchesDegree = 
-      selectedDegreeFilter === 'All' || domain.targetDegrees.includes(selectedDegreeFilter as any);
+      selectedDegreeFilter === 'All' || (domain.targetDegrees || []).includes(selectedDegreeFilter as any);
 
     let matchesBranch = true;
     if (selectedBranchFilter !== 'All') {
@@ -349,14 +349,14 @@ export default function InternshipsView({
                     <div className="space-y-1.5">
                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block font-sans">Compilers / Tools learned:</span>
                       <div className="flex flex-wrap gap-1 leading-none">
-                        {domain.toolsAndTech.slice(0, 4).map((tech) => (
+                        {(domain.toolsAndTech || []).slice(0, 4).map((tech) => (
                           <span key={tech} className="text-[9px] font-bold font-mono bg-slate-50 text-slate-600 px-2 py-0.5 rounded border border-slate-200 hover:bg-slate-100">
                             {tech}
                           </span>
                         ))}
-                        {domain.toolsAndTech.length > 4 && (
+                        {(domain.toolsAndTech || []).length > 4 && (
                           <span className="text-[10px] font-bold font-mono text-slate-400 self-center pl-1">
-                            +{domain.toolsAndTech.length - 4} more
+                            +{(domain.toolsAndTech || []).length - 4} more
                           </span>
                         )}
                       </div>
@@ -369,11 +369,11 @@ export default function InternshipsView({
                     <div className="flex justify-between items-center text-[10px] text-slate-600 mt-1 font-mono">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{domain.durationWeeks.join('/')} Weeks</span>
+                        <span>{(domain.durationWeeks || []).join('/')} Weeks</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>{domain.targetDegrees.join(', ')}</span>
+                        <span>{(domain.targetDegrees || []).join(', ')}</span>
                       </div>
                     </div>
 
@@ -508,7 +508,7 @@ export default function InternshipsView({
                 <h4 className="text-xs uppercase font-bold tracking-widest text-slate-500">Structured Phase Milestones</h4>
                 
                 <div className="space-y-3">
-                  {selectedDomain.phases.map((phase, idx) => (
+                  {(selectedDomain.phases || []).map((phase, idx) => (
                     <div key={idx} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
                       <div className="flex justify-between items-center bg-white px-3 py-1 rounded border border-slate-200">
                         <span className="text-xs font-extrabold text-slate-900">PHASE 0{idx+1}: {phase.title}</span>

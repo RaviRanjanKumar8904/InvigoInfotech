@@ -618,7 +618,7 @@ export default function EnrollmentWizard({
                           onChange={(e) => setFormData({ ...formData, durationWeeks: Number(e.target.value) })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                         >
-                          {selectedDomainObject.durationWeeks.map((week) => (
+                          {(selectedDomainObject.durationWeeks || []).map((week) => (
                             <option key={week} value={week}>
                               {week} Weeks (Complete Program)
                             </option>
@@ -743,7 +743,7 @@ export default function EnrollmentWizard({
                       <div className="space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-205 flex flex-col justify-between">
                         <span className="text-[10px] font-mono text-blue-600 tracking-wider font-bold">ACADEMIC ALIGNMENT STATUS:</span>
                         <p className="text-xs text-slate-600 leading-normal">
-                          {selectedDomainObject.targetDegrees.includes(formData.degree) ? (
+                          {(selectedDomainObject.targetDegrees || []).includes(formData.degree as any) ? (
                             <span className="text-emerald-600 font-bold">✔ Highly Compatible with your {formData.degree} curriculum framework.</span>
                           ) : (
                             <span className="text-amber-600 font-bold">⚡ Cross-Disciplinary validation will be initialized. Complete Phase I to lock credits.</span>
@@ -859,7 +859,7 @@ export default function EnrollmentWizard({
                   </div>
                   <div className="flex justify-between gap-4">
                     <span>Selected Tech Node:</span>
-                    <span className="text-slate-800 font-bold text-right">{selectedDomainObject.title.split(' & ')[0]}</span>
+                    <span className="text-slate-800 font-bold text-right">{(selectedDomainObject.title || '').split(' ')[0]} Internship Cohort</span>
                   </div>
                   <div className="flex justify-between gap-4">
                     <span>Duration & Mode:</span>

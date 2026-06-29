@@ -358,10 +358,10 @@ export default function HomeView({
                     <div className="mt-2 sm:mt-3">
                       <span className="text-[8px] sm:text-[9px] uppercase font-bold text-slate-400 block mb-1">Target Audience</span>
                       <div className="flex gap-1 flex-wrap">
-                        {domain.targetDegrees.slice(0, 2).map((deg) => (
+                        {(domain.targetDegrees || []).slice(0, 2).map((deg) => (
                           <span key={deg} className="px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[8px] sm:text-[9px] font-bold">{deg}</span>
                         ))}
-                        {domain.targetDegrees.length > 2 && <span className="px-1 sm:px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 text-[8px] sm:text-[9px] font-bold">+{domain.targetDegrees.length - 2}</span>}
+                        {(domain.targetDegrees || []).length > 2 && <span className="px-1 sm:px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 text-[8px] sm:text-[9px] font-bold">+{(domain.targetDegrees || []).length - 2}</span>}
                       </div>
                     </div>
                   </div>
