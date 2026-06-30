@@ -1259,7 +1259,7 @@ export default function EnrollmentWizard({
                   <div className="space-y-1">
                     <img src="/Founder_Singnature.png" alt="Signature" className="h-8 sm:h-12 object-contain ml-2 mb-2" />
                     <div className="w-40 border-t border-slate-800 pt-1">
-                       <p className="text-[10px] sm:text-xs font-bold text-slate-800 text-center">Co Founder ( Invigo Infotech )</p>
+                       <p className="text-[10px] sm:text-xs font-bold text-slate-800 text-center">Founder ( Invigo Infotech )</p>
                     </div>
                   </div>
                   <div className="text-right space-y-1 text-[9px] sm:text-[10px] text-slate-500 pb-2">
