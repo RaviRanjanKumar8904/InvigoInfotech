@@ -360,7 +360,7 @@ async function buildDocument(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
-  doc.text('Founder ( Invigo Infotech )', 55, bottomY + 8, { align: 'center' });
+  doc.text('Co Founder ( Invigo Infotech )', 55, bottomY + 8, { align: 'center' });
 
   if (opts.docType === 'Certificate') {
     // Purnea Stamp perfectly centered
