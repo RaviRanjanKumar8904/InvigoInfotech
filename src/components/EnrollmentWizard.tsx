@@ -4,10 +4,11 @@ import {
   Phone, Calendar, BookOpen, Award, ArrowRight, Download, RefreshCw, BookmarkCheck, Tag
 } from 'lucide-react';
 import { useDomains } from '../hooks/useDomains';
-import { EnrollmentState, Coupon } from '../types';
-import { db } from '../firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-
+import { auth, db } from '../firebase';
+import { getDoc, doc, setDoc, getDocs, collection, query, where, addDoc } from 'firebase/firestore';
+import { INTERNSHIP_DOMAINS, BRANCH_OPTIONS, HARDCODED_COLLEGES } from '../data';
+import { EXTENDED_COLLEGES } from '../colleges';
+import type { EnrollmentState, PartnerCollege, Coupon } from '../types';
 import { StudentUser } from '../types';
 import { downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
 
@@ -72,6 +73,51 @@ export default function EnrollmentWizard({
   currentUser
 }: EnrollmentWizardProps) {
   const allDomains = useDomains();
+  // Partner Colleges list
+  const [partnerColleges, setPartnerColleges] = useState<PartnerCollege[]>(HARDCODED_COLLEGES);
+  const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
+
+  useEffect(() => {
+    const fetchColleges = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'partnerColleges'));
+        const cols: PartnerCollege[] = [];
+        snap.forEach(doc => cols.push({ id: doc.id, ...doc.data() } as PartnerCollege));
+
+        const mergedMap = new Map<string, PartnerCollege>();
+        HARDCODED_COLLEGES.forEach(c => mergedMap.set(c.id, { ...c }));
+        
+        // Add the massive 10k list
+        EXTENDED_COLLEGES.forEach((name, i) => {
+          const id = `extended_${i}`;
+          if (!Array.from(mergedMap.values()).some(c => c.collegeName.toLowerCase() === name.toLowerCase())) {
+            mergedMap.set(id, {
+              id,
+              collegeName: name,
+              coordinatorName: '',
+              coordinatorPhone: '',
+              coordinatorEmail: '',
+              createdAt: new Date().toISOString()
+            });
+          }
+        });
+
+        cols.forEach(c => {
+          if (mergedMap.has(c.id)) {
+            mergedMap.set(c.id, { ...mergedMap.get(c.id)!, ...c });
+          } else {
+            mergedMap.set(c.id, c);
+          }
+        });
+        
+        setPartnerColleges(Array.from(mergedMap.values()));
+      } catch (e) {
+        console.error('Failed to fetch custom partner colleges', e);
+      }
+    };
+    fetchColleges();
+  }, []);
+
   // Wizard steps: 1 = Personal Details, 2 = Academic Data, 3 = Domain Configuration, 4 = Offer Synthesis
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -327,6 +373,23 @@ export default function EnrollmentWizard({
       
       try {
         await onEnrollmentComplete(compiledOffer);
+        
+        const cName = compiledOffer.collegeName.trim().toLowerCase();
+        const collegeExists = partnerColleges.some(c => c.collegeName.trim().toLowerCase() === cName);
+        if (!collegeExists && compiledOffer.collegeName.trim()) {
+          try {
+            await addDoc(collection(db, 'partnerColleges'), {
+              collegeName: compiledOffer.collegeName.trim(),
+              coordinatorName: '',
+              coordinatorPhone: '',
+              coordinatorEmail: '',
+              createdAt: new Date().toISOString()
+            });
+          } catch (e) {
+            console.error("Failed to auto-add new partner college:", e);
+          }
+        }
+
         setSynthesizedOffer(compiledOffer);
         setIsSynthesizing(false);
         setCurrentStep(5);
@@ -490,7 +553,7 @@ export default function EnrollmentWizard({
                   </div>
 
                   <div className="space-y-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative">
                       <label className="text-xs font-mono uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                         <GraduationCap className="h-4 w-4 text-blue-500" />
                         <span>College or University Name</span>
@@ -499,9 +562,34 @@ export default function EnrollmentWizard({
                         type="text"
                         placeholder="e.g. Delhi Technological University (DTU)"
                         value={formData.collegeName}
-                        onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, collegeName: e.target.value });
+                          setShowCollegeDropdown(true);
+                        }}
+                        onFocus={() => setShowCollegeDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowCollegeDropdown(false), 200)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-400 focus:bg-white transition-all"
                       />
+                      {showCollegeDropdown && partnerColleges.length > 0 && (
+                        <div className="absolute top-[70px] left-0 right-0 z-50 bg-white border border-slate-200 shadow-xl rounded-xl max-h-60 overflow-y-auto overflow-x-hidden">
+                          {partnerColleges
+                            .filter(c => c.collegeName.toLowerCase().includes(formData.collegeName.toLowerCase()))
+                            .slice(0, 50)
+                            .map(c => (
+                              <div
+                                key={c.id}
+                                className="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setFormData({ ...formData, collegeName: c.collegeName });
+                                  setShowCollegeDropdown(false);
+                                }}
+                              >
+                                {c.collegeName}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                       {errors.collegeName && <p className="text-[10px] font-mono text-rose-500">{errors.collegeName}</p>}
                     </div>
 

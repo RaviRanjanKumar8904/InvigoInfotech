@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TESTIMONIALS } from '../data';
 import { useDomains } from '../hooks/useDomains';
@@ -109,6 +109,23 @@ export default function HomeView({
                 New users use code <span className="font-mono font-extrabold bg-white text-purple-700 px-2 py-0.5 rounded shadow-sm">INVIGO33</span> to get <span className="text-yellow-300 font-bold">33% OFF!</span>
               </span>
             </div>
+          </motion.div>
+
+          {/* WhatsApp Channel Banner */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mx-auto mt-4"
+          >
+            <a href="https://whatsapp.com/channel/0029Vb8F1s03WHTffO55td0h" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 sm:gap-3 bg-[#25D366] hover:bg-[#128C7E] transition-colors p-1.5 pr-4 rounded-full shadow-lg shadow-[#25D366]/25 border border-[#25D366]/30">
+              <span className="bg-white text-[#128C7E] p-1.5 rounded-full flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+              </span>
+              <span className="text-white text-xs sm:text-sm font-bold tracking-wide">
+                Join our Official WhatsApp Channel for Updates!
+              </span>
+            </a>
           </motion.div>
 
           {/* Headline Pill */}

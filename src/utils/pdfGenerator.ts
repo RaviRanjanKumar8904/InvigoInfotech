@@ -130,7 +130,8 @@ async function buildDocument(
     issuedDate: string;
     grade?: string;
     certNo: string;
-    docType: 'Certificate' | 'OfferLetter' | 'AcceptanceLetter';
+    docType: 'Certificate' | 'OfferLetter' | 'AcceptanceLetter' | 'AttendanceSheet';
+    attendancePercentage?: number;
   }
 ) {
   const W = doc.internal.pageSize.getWidth();
@@ -207,6 +208,7 @@ async function buildDocument(
   doc.setTextColor(0, 0, 0);
   const titleText = opts.docType === 'Certificate' ? 'Certificate of Completion' : 
                     opts.docType === 'OfferLetter' ? 'Internship Offer Letter' : 
+                    opts.docType === 'AttendanceSheet' ? 'Attendance Certificate' :
                     'Internship Acceptance Letter';
   doc.text(titleText, W / 2, isLandscape ? 65 : 75, { align: 'center' });
 
@@ -325,6 +327,24 @@ async function buildDocument(
       { text: 'program is scheduled to begin on ', bold: false },
       { text: startFmt, bold: true },
       { text: '. As an accepted intern, you are expected to complete all assigned weekly milestones, maintain regular communication, submit all deliverables before the deadline, and pass the final MCQ assessment with a minimum score of 60%. We look forward to supporting your growth and success.', bold: false }
+    ];
+  } else if (opts.docType === 'AttendanceSheet') {
+    bodyParagraph = [
+      { text: 'This is to certify that ', bold: false },
+      { text: opts.studentName, bold: true },
+      { text: ', Reg no- ', bold: false },
+      { text: opts.registrationNo, bold: true },
+      { text: ' of ', bold: false },
+      { text: opts.collegeName, bold: true },
+      { text: ' has completed a ', bold: false },
+      { text: `${opts.durationWeeks} Weeks ${modeText} Training `, bold: true },
+      { text: 'program in the ', bold: false },
+      { text: `"${opts.domainTitle}" `, bold: true },
+      { text: 'domain starting from ', bold: false },
+      { text: startFmt, bold: true },
+      { text: '. During this program, the candidate maintained an attendance record of ', bold: false },
+      { text: `${opts.attendancePercentage}%`, bold: true },
+      { text: '. We appreciate their dedication and consistent participation.', bold: false }
     ];
   }
 
@@ -509,4 +529,29 @@ export async function downloadAcceptanceLetterPDF(enrollment: EnrollmentState, d
   });
 
   doc.save(`Acceptance_Letter_InvigoInfotech_${enrollment.fullName.replace(/\s+/g, '_')}.pdf`);
+}
+
+// ═══════════════════════════════════════════════
+// ATTENDANCE SHEET PDF
+// ═══════════════════════════════════════════════
+export async function downloadAttendanceSheetPDF(enrollment: EnrollmentState, domainTitle: string, attendancePercentage: number): Promise<void> {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const regNo = enrollment.registrationNo || enrollment.candidateId;
+  const issuedDate = new Date().toISOString().split('T')[0];
+
+  await buildDocument(doc, {
+    studentName: enrollment.fullName,
+    registrationNo: regNo,
+    collegeName: enrollment.collegeName,
+    domainTitle,
+    durationWeeks: enrollment.durationWeeks,
+    trainingMode: enrollment.trainingMode || 'offline',
+    startDate: enrollment.startDate,
+    issuedDate,
+    certNo: enrollment.candidateId,
+    docType: 'AttendanceSheet',
+    attendancePercentage
+  });
+
+  doc.save(`Attendance_Sheet_InvigoInfotech_${enrollment.fullName.replace(/\s+/g, '_')}.pdf`);
 }

@@ -25,6 +25,7 @@ export interface InternshipDomain {
   toolsAndTech: string[];
   gradient: string; // CSS gradient class
   imageUrl?: string; // Domain card banner image
+  internshipReportLink?: string; // Domain-wise default internship report link
   phases: {
     title: string;
     description: string;
@@ -75,6 +76,10 @@ export interface EnrollmentState {
   certificateRequested?: boolean;
   certificateRequestedAt?: string;
   blocked?: boolean;
+  internshipReportLink?: string;
+  attendancePercentage?: number;
+  attendanceSheetIssued?: boolean;
+  attendanceSheetDate?: string;
   // MCQ Test fields
   testScore?: number;
   testPassed?: boolean;
@@ -165,4 +170,14 @@ export interface MaterialProgress {
   studentEmail: string;
   domainId: string;
   completedMaterialIds: string[];
+}
+
+// Partner Colleges
+export interface PartnerCollege {
+  id: string;
+  collegeName: string;
+  coordinatorName: string;
+  coordinatorPhone: string;
+  coordinatorEmail: string;
+  createdAt: string;
 }

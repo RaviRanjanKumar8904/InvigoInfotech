@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, addDoc, query, where } from 'firebase/firestore';
-import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport, StudyMaterial, MCQQuestion, InternshipDomain, Coupon } from '../types';
-import { INTERNSHIP_DOMAINS, DEFAULT_MCQ_QUESTIONS } from '../data';
+import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport, StudyMaterial, MCQQuestion, InternshipDomain, Coupon, PartnerCollege } from '../types';
+import { INTERNSHIP_DOMAINS, DEFAULT_MCQ_QUESTIONS, HARDCODED_COLLEGES } from '../data';
+
+
 import { useDomains } from '../hooks/useDomains';
 import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
 
@@ -22,7 +24,7 @@ interface AdminPanelProps {
   currentUser: any;
   setCurrentTab: (tab: string) => void;
 }
-type AdminSection = 'dashboard' | 'users' | 'certificates' | 'certRequests' | 'analytics' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView' | 'coupons' | 'mentorBookings' | 'settings';
+type AdminSection = 'dashboard' | 'users' | 'certificates' | 'certRequests' | 'analytics' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView' | 'coupons' | 'mentorBookings' | 'settings' | 'colleges';
 // ─── Helper: resolve domain title from domainId ───
 function getDomainTitle(domainId: string): string {
   const domain = INTERNSHIP_DOMAINS.find(d => d.id === domainId);
@@ -128,6 +130,20 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   }, [allEnrollments]);
 
 
+  // Partner Colleges State
+  const [allColleges, setAllColleges] = useState<PartnerCollege[]>([]);
+  const [collegeSearchQuery, setCollegeSearchQuery] = useState('');
+  const [showAddCollegeModal, setShowAddCollegeModal] = useState(false);
+  const [isEditingCollege, setIsEditingCollege] = useState(false);
+  const [editingCollegeId, setEditingCollegeId] = useState<string | null>(null);
+  const [newCollege, setNewCollege] = useState({
+    collegeName: '',
+    coordinatorName: '',
+    coordinatorPhone: '',
+    coordinatorEmail: ''
+  });
+  const [visibleCollegesCount, setVisibleCollegesCount] = useState(100);
+
   // Activity Logs
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [logFilter, setLogFilter] = useState<string>('all');
@@ -202,6 +218,14 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
   const [showAddCouponModal, setShowAddCouponModal] = useState(false);
   const [newCoupon, setNewCoupon] = useState({ code: '', discountPercent: 33, active: true, expiresAt: '', collaboratorName: '' });
+
+  // ─── Load partner colleges from Firestore ───
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'partnerColleges'), snap => {
+      setAllColleges(snap.docs.map(d => ({ id: d.id, ...d.data() } as PartnerCollege)));
+    });
+    return unsub;
+  }, []);
 
   // ─── Load enrollments from Firestore ───
   useEffect(() => {
@@ -859,6 +883,36 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     } catch (err) { console.error(err); }
   };
 
+  // ─── Partner Colleges CRUD ───
+  const handleAddCollege = async () => {
+    if (!newCollege.collegeName.trim()) return;
+    try {
+      const data = {
+        collegeName: newCollege.collegeName.trim(),
+        coordinatorName: newCollege.coordinatorName.trim(),
+        coordinatorPhone: newCollege.coordinatorPhone.trim(),
+        coordinatorEmail: newCollege.coordinatorEmail.trim(),
+        createdAt: new Date().toISOString()
+      };
+      
+      if (isEditingCollege && editingCollegeId) {
+        await setDoc(doc(db, 'partnerColleges', editingCollegeId), data, { merge: true });
+        addLog(`Updated partner college: ${data.collegeName}`, 'setting');
+      } else {
+        await addDoc(collection(db, 'partnerColleges'), data);
+        addLog(`Added new partner college: ${data.collegeName}`, 'setting');
+      }
+      
+      setShowAddCollegeModal(false);
+      setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '' });
+      setEditingCollegeId(null);
+      setIsEditingCollege(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save college details. Please try again.");
+    }
+  };
+
   // ─── Coupons CRUD ───
   const handleAddCoupon = async () => {
     if (!newCoupon.code.trim()) return;
@@ -903,6 +957,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     { id: 'certRequests', label: 'Cert Requests', icon: Award, badge: allEnrollments.filter(e => e.certificateRequested && !e.certificateIssued).length },
     { id: 'domains', label: 'Domain Management', icon: Globe },
     { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
+    { id: 'colleges', label: 'Partner Colleges', icon: Globe, badge: allColleges.length + HARDCODED_COLLEGES.length },
     { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
 
     { id: 'testResultsView', label: 'Test Results', icon: CheckCircle, badge: testResults.length },
@@ -2775,6 +2830,181 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
           )}
 
           {/* Settings View */}
+          {/* ═══════════════════════ PARTNER COLLEGES SECTION ═══════════════════════ */}
+          {activeSection === 'colleges' && (() => {
+            const mergedCollegesMap = new Map<string, PartnerCollege>();
+            
+            HARDCODED_COLLEGES.forEach(col => {
+              mergedCollegesMap.set(col.id, { ...col });
+            });
+            
+            allColleges.forEach(col => {
+              if (mergedCollegesMap.has(col.id)) {
+                mergedCollegesMap.set(col.id, { ...mergedCollegesMap.get(col.id)!, ...col });
+              } else {
+                mergedCollegesMap.set(col.id, col);
+              }
+            });
+
+            const finalColleges = Array.from(mergedCollegesMap.values())
+              .filter(col => !(col as any).isDeleted)
+              .map(col => {
+                const cName = (col.collegeName || '').trim().toLowerCase();
+                const studentCount = allEnrollments.filter(e => (e.collegeName || '').trim().toLowerCase() === cName).length;
+                return { ...col, studentCount };
+              });
+
+            finalColleges.sort((a, b) => {
+              if (b.studentCount !== a.studentCount) {
+                return b.studentCount - a.studentCount;
+              }
+              return a.collegeName.localeCompare(b.collegeName);
+            });
+
+            const filteredColleges = finalColleges.filter(c => 
+              c.collegeName.toLowerCase().includes(collegeSearchQuery.toLowerCase()) || 
+              (c.coordinatorName || '').toLowerCase().includes(collegeSearchQuery.toLowerCase())
+            );
+
+            return (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800">Partner Colleges & Universities</h2>
+                    <p className="text-xs text-slate-500 mt-1">Manage institutional partners, coordinators, and view student distributions.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search colleges..." 
+                        value={collegeSearchQuery}
+                        onChange={(e) => setCollegeSearchQuery(e.target.value)}
+                        className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 bg-white shadow-sm"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setIsEditingCollege(false);
+                        setEditingCollegeId(null);
+                        setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '' });
+                        setShowAddCollegeModal(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" /> Add Partner
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Globe className="h-6 w-6"/></div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Institutions</p>
+                      <p className="text-2xl font-black text-slate-800">{finalColleges.length}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Users className="h-6 w-6"/></div>
+                    <div>
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Students Enrolled</p>
+                      <p className="text-2xl font-black text-slate-800">{allEnrollments.filter(e => e.collegeName && finalColleges.some(c => c.collegeName === e.collegeName)).length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="w-full text-xs">
+                    <div className="bg-slate-50 border-b border-slate-200 flex">
+                      <div className="flex-1 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-slate-600">College Name</div>
+                      <div className="w-48 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-slate-600">Coordinator Name</div>
+                      <div className="w-40 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-center text-slate-600">Students Enrolled</div>
+                      <div className="w-32 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-right text-slate-600">Actions</div>
+                    </div>
+                    <div 
+                      className="max-h-[600px] overflow-y-auto"
+                      onScroll={(e) => {
+                        const target = e.target as HTMLDivElement;
+                        if (target.scrollHeight - target.scrollTop <= target.clientHeight + 150) {
+                          setVisibleCollegesCount(prev => Math.min(prev + 50, filteredColleges.length));
+                        }
+                      }}
+                    >
+                      {filteredColleges.slice(0, visibleCollegesCount).map((col) => (
+                        <div key={col.id} className="flex border-b border-slate-100 hover:bg-slate-50 transition-colors items-center bg-white">
+                          <div className="flex-1 px-6 py-2 font-semibold text-sm text-slate-800 truncate" title={col.collegeName}>
+                            {col.collegeName}
+                          </div>
+                          <div className="w-48 px-6 py-2 text-slate-600">
+                            <div className="font-medium text-slate-900 truncate">{col.coordinatorName || <span className="text-slate-400 italic">N/A</span>}</div>
+                            {(col.coordinatorPhone || col.coordinatorEmail) && (
+                              <div className="text-[10px] text-slate-500 mt-1 truncate">
+                                {col.coordinatorPhone && <span>{col.coordinatorPhone}</span>}
+                                {col.coordinatorPhone && col.coordinatorEmail && <span> • </span>}
+                                {col.coordinatorEmail && <span>{col.coordinatorEmail}</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="w-40 px-6 py-2 text-center flex justify-center">
+                            <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                              {col.studentCount}
+                            </span>
+                          </div>
+                          <div className="w-32 px-6 py-2 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setIsEditingCollege(true);
+                                  setEditingCollegeId(col.id);
+                                  setNewCollege({
+                                    collegeName: col.collegeName,
+                                    coordinatorName: col.coordinatorName || '',
+                                    coordinatorPhone: col.coordinatorPhone || '',
+                                    coordinatorEmail: col.coordinatorEmail || ''
+                                  });
+                                  setShowAddCollegeModal(true);
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit College Details"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm(`Are you sure you want to delete ${col.collegeName}?`)) {
+                                    if (col.id.startsWith('hardcoded_')) {
+                                      await setDoc(doc(db, 'partnerColleges', col.id), { isDeleted: true }, { merge: true });
+                                      addLog(`Deleted built-in partner college: ${col.collegeName}`, 'setting');
+                                    } else {
+                                      await deleteDoc(doc(db, 'partnerColleges', col.id));
+                                      addLog(`Deleted partner college: ${col.collegeName}`, 'setting');
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete College"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {filteredColleges.length > visibleCollegesCount && (
+                        <div className="p-4 text-center text-slate-500 text-sm font-medium bg-slate-50">
+                          Scroll down to load more... (Showing {visibleCollegesCount} out of {filteredColleges.length})
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+
+          {/* ═══════════════════════ SETTINGS SECTION ═══════════════════════ */}
           {activeSection === 'settings' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div className="flex justify-between items-center">
@@ -3488,6 +3718,82 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Save Coupon
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Add/Edit College Modal */}
+        {showAddCollegeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200"
+            >
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="font-bold text-slate-800">{isEditingCollege ? 'Edit Partner College' : 'Add Partner College'}</h3>
+                <button onClick={() => setShowAddCollegeModal(false)} className="p-1.5 bg-white hover:bg-slate-100 rounded-full text-slate-500 cursor-pointer shadow-xs border border-slate-200">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Institution Name *</label>
+                  <input
+                    type="text"
+                    value={newCollege.collegeName}
+                    onChange={(e) => setNewCollege({ ...newCollege, collegeName: e.target.value })}
+                    placeholder="e.g. Indian Institute of Technology"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Name (Optional)</label>
+                  <input
+                    type="text"
+                    value={newCollege.coordinatorName}
+                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorName: e.target.value })}
+                    placeholder="e.g. Dr. Ramesh Kumar"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Phone (Optional)</label>
+                  <input
+                    type="text"
+                    value={newCollege.coordinatorPhone}
+                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorPhone: e.target.value })}
+                    placeholder="e.g. +91 9876543210"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Email (Optional)</label>
+                  <input
+                    type="email"
+                    value={newCollege.coordinatorEmail}
+                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorEmail: e.target.value })}
+                    placeholder="e.g. ramesh@iit.ac.in"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+              </div>
+              <div className="p-5 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
+                <button
+                  onClick={() => setShowAddCollegeModal(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddCollege}
+                  disabled={!newCollege.collegeName.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isEditingCollege ? 'Update College' : 'Save College'}
                 </button>
               </div>
             </motion.div>

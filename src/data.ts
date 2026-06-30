@@ -1,4 +1,5 @@
 import { InternshipDomain, FAQItem } from './types';
+import { EXTENDED_COLLEGES } from './colleges';
 
 // Domain image mapping - maps domain IDs to their card images
 export const DOMAIN_IMAGES: Record<string, string> = {
@@ -33,6 +34,53 @@ export const BRANCH_OPTIONS: Record<string, string[]> = {
   'BA': ['English', 'Economics', 'Psychology', 'Sociology', 'Political Science'],
   'B.Com': ['Accounting', 'Finance', 'Taxation', 'Banking', 'General'],
 };
+
+export const HARDCODED_COLLEGES = [
+  "BCE Bhagalpur",
+  "MIT Muzaffarpur",
+  "Gaya College of Engineering",
+  "Darbhanga College of Engineering (DCE)",
+  "Motihari College of Engineering (MCE)",
+  "Loknayak Jai Prakash Institute of Technology (LNJPIT), Chapra",
+  "Nalanda College of Engineering (NCE), Chandi",
+  "B.P. Mandal College of Engineering, Madhepura",
+  "Supaul College of Engineering",
+  "Saharsa College of Engineering",
+  "Shershah Engineering College, Sasaram",
+  "Purnea College of Engineering",
+  "Rashtrakavi Ramdhari Singh Dinkar College of Engineering, Begusarai",
+  "Government Engineering College, Arwal",
+  "Government Engineering College, Aurangabad",
+  "Government Engineering College, Jamui",
+  "Government Engineering College, Katihar",
+  "Government Engineering College, Khagaria",
+  "Government Engineering College, Kishanganj",
+  "Government Engineering College, Lakhisarai",
+  "Government Engineering College, Madhubani",
+  "Government Engineering College, Munger",
+  "Government Engineering College, Nawada",
+  "Government Engineering College, Samastipur",
+  "Government Engineering College, Sheikhpura",
+  "Government Engineering College, Sheohar",
+  "Government Engineering College, Siwan",
+  "Government Engineering College, Sitamarhi",
+  "Government Engineering College, Vaishali",
+  "Government Engineering College, West Champaran",
+  "Netaji Subhas Institute of Technology (NSIT), Bihta/Patna",
+  "R.P. Sharma Institute of Technology, Patna",
+  "Moti Babu Institute of Technology, Forbesganj",
+  "Vidya Vihar Institute of Technology, Purnia",
+  "Sityog Institute of Technology, Aurangabad",
+  "Buddha Institute of Technology, Gaya"
+].concat(EXTENDED_COLLEGES).map((name, index) => ({
+  id: `hardcoded_beu_${index}`,
+  collegeName: name,
+  coordinatorName: "",
+  coordinatorPhone: "",
+  coordinatorEmail: "",
+  createdAt: new Date().toISOString()
+}));
+
 
 // Top selling course IDs (featured on home page)
 export const TOP_SELLING_COURSE_IDS = ['web_development', 'python_programming', 'data_science', 'full_stack', 'core_java'];

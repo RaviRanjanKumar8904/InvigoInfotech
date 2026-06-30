@@ -9,7 +9,7 @@ import {
 import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState, StudyMaterial, MCQQuestion } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { downloadCertificatePDF, downloadOfferLetterPDF } from '../utils/pdfGenerator';
+import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAttendanceSheetPDF } from '../utils/pdfGenerator';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, setDoc, deleteField } from 'firebase/firestore';
 
@@ -159,7 +159,7 @@ export default function StudentNexus({
   const matchedDomain = allDomains.find(domain => domain.id === activeEnrollment?.domainId) || allDomains[0];
 
   // Active sub-sections (Samsung One UI segmented control)
-  const [activeSubTab, setActiveSubTab] = useState<'homework' | 'certificate' | 'roadmap' | 'messages'>('homework');
+  const [activeSubTab, setActiveSubTab] = useState<'homework' | 'certificate' | 'roadmap' | 'messages' | 'internshipReport' | 'attendance' | 'mentor'>('homework');
   const [selectedRoadmapNode, setSelectedRoadmapNode] = useState<'current' | 'next' | 'specialty'>('next');
 
   // Study Materials State
@@ -691,9 +691,23 @@ export default function StudentNexus({
 
         </div>
 
+        {/* WhatsApp Channel Banner */}
+        <div className="bg-[#25D366]/10 border border-[#25D366]/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4 mb-6 mt-4 mx-auto shadow-sm">
+          <div className="bg-[#25D366] text-white p-2.5 rounded-full shrink-0 shadow-md">
+            <MessageSquare className="h-6 w-6" />
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h4 className="text-sm font-bold text-slate-800">Join our Official WhatsApp Channel</h4>
+            <p className="text-xs text-slate-600 mt-0.5">Stay updated with instant announcements, upcoming sessions, and internship milestones.</p>
+          </div>
+          <a href="https://whatsapp.com/channel/0029Vb8F1s03WHTffO55td0h" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap flex items-center gap-2">
+            Join Channel
+          </a>
+        </div>
+
         {/* Samsung Segmented Tab Controls */}
         <div className="flex justify-center pt-2">
-          <div className="bg-slate-50 border border-slate-200 p-1.5 rounded-[1.8rem] grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-row gap-1 w-full max-w-3xl shadow-xs">
+          <div className="bg-slate-50 border border-slate-200 p-1.5 rounded-[1.8rem] grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap md:flex-row gap-1 w-full max-w-4xl shadow-xs">
             
             <button
               onClick={() => setActiveSubTab('homework')}
@@ -746,6 +760,30 @@ export default function StudentNexus({
               {messages.filter(m => !m.read).length > 0 && (
                 <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{messages.filter(m => !m.read).length}</span>
               )}
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('internshipReport')}
+              className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                activeSubTab === 'internshipReport'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <FileText className="h-4.5 w-4.5" />
+              <span>Report</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('attendance')}
+              className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                activeSubTab === 'attendance'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <Calendar className="h-4.5 w-4.5" />
+              <span>Attendance</span>
             </button>
 
           </div>
@@ -1549,6 +1587,99 @@ export default function StudentNexus({
                       )}
                     </div>
                   ))
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: INTERNSHIP REPORT */}
+          {activeSubTab === 'internshipReport' && (() => {
+            const reportLink = activeEnrollment.internshipReportLink || matchedDomain.internshipReportLink;
+            return (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <span>Internship Report</span>
+                </h3>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                {reportLink ? (
+                  <div className="space-y-4">
+                    <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800">Report Available</h4>
+                      <p className="text-sm text-slate-500 mt-1">Your internship report link has been provided by the administration.</p>
+                    </div>
+                    <a 
+                      href={reportLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-xl transition-all"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      View Internship Report
+                    </a>
+                  </div>
+                ) : (
+                  <div className="space-y-4 py-6">
+                    <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800">No Report Available</h4>
+                      <p className="text-sm text-slate-500 mt-1">Your internship report is pending. Please wait for the administration to update the link.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+            );
+          })()}
+
+          {/* TAB: ATTENDANCE */}
+          {activeSubTab === 'attendance' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <span>Attendance Record</span>
+                </h3>
+              </div>
+              
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                {activeEnrollment.attendanceSheetIssued ? (
+                  <div className="space-y-4">
+                    <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800">Attendance Sheet Issued</h4>
+                      <p className="text-sm text-slate-500 mt-1">Your attendance record stands at {activeEnrollment.attendancePercentage || 0}%.</p>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        await downloadAttendanceSheetPDF(activeEnrollment, matchedDomain.title, activeEnrollment.attendancePercentage || 0);
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Attendance Sheet
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 py-6">
+                    <Clock className="h-12 w-12 text-slate-300 mx-auto" />
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800">Pending Evaluation</h4>
+                      <p className="text-sm text-slate-500 mt-1">Your attendance sheet has not been issued yet. It usually becomes available after your duration is completed.</p>
+                    </div>
+                  </div>
                 )}
               </div>
             </motion.div>

@@ -56,6 +56,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Partner Colleges - public read, admin write
+    match /partnerColleges/{collegeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Coupons collection
     match /coupons/{couponId} {
       allow read: if isSignedIn();
