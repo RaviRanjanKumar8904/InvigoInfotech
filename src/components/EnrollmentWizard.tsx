@@ -1,7 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { 
   Sparkles, CheckCircle, GraduationCap, ChevronRight, User, Mail, 
-  Phone, Calendar, BookOpen, Award, ArrowRight, Download, RefreshCw, BookmarkCheck, Tag
+  Phone, Calendar, BookOpen, Award, ArrowRight, Download, RefreshCw, BookmarkCheck, Tag, MessageCircle
 } from 'lucide-react';
 import { useDomains } from '../hooks/useDomains';
 import { auth, db } from '../firebase';
@@ -1376,6 +1376,18 @@ export default function EnrollmentWizard({
 
           </div>
         )}
+
+        {/* WhatsApp Channel Banner for Enrollment Page */}
+        <div className="flex justify-center mt-8 mb-4">
+          <a href="https://whatsapp.com/channel/0029Vb8F1s03WHTffO55td0h" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 sm:gap-3 bg-[#25D366] hover:bg-[#128C7E] transition-colors p-1.5 pr-4 rounded-full shadow-lg shadow-[#25D366]/25 border border-[#25D366]/30">
+            <span className="bg-white text-[#128C7E] p-1.5 rounded-full flex items-center justify-center">
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+            </span>
+            <span className="text-white text-xs sm:text-sm font-bold tracking-wide">
+              Join our Official WhatsApp Channel for Updates!
+            </span>
+          </a>
+        </div>
 
       </div>
     </div>
