@@ -2865,7 +2865,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
             });
 
             const filteredColleges = finalColleges.filter(c => 
-              (c.collegeName.toLowerCase().includes(collegeSearchQuery.toLowerCase()) || 
+              ((c.collegeName || '').toLowerCase().includes((collegeSearchQuery || '').toLowerCase()) || 
               (c.coordinatorName || '').toLowerCase().includes(collegeSearchQuery.toLowerCase())) &&
               (collegeStateFilter === 'All' || c.state === collegeStateFilter)
             );

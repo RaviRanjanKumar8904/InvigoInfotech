@@ -84,7 +84,7 @@ export default function EnrollmentWizard({
         // Add the massive 10k list
         EXTENDED_COLLEGES.forEach((college, i) => {
           const id = `extended_${i}`;
-          if (!Array.from(mergedMap.values()).some(c => c.collegeName.toLowerCase() === college.name.toLowerCase())) {
+          if (!Array.from(mergedMap.values()).some(c => (c.collegeName || '').toLowerCase() === (college.name || '').toLowerCase())) {
             mergedMap.set(id, {
               id,
               collegeName: college.name,
@@ -568,7 +568,7 @@ export default function EnrollmentWizard({
                       {showCollegeDropdown && partnerColleges.length > 0 && (
                         <div className="absolute top-[70px] left-0 right-0 z-50 bg-white border border-slate-200 shadow-xl rounded-xl max-h-60 overflow-y-auto overflow-x-hidden">
                           {partnerColleges
-                            .filter(c => c.collegeName.toLowerCase().includes(formData.collegeName.toLowerCase()))
+                            .filter(c => (c.collegeName || '').toLowerCase().includes((formData.collegeName || '').toLowerCase()))
                             .slice(0, 50)
                             .map(c => (
                               <div
