@@ -5,7 +5,7 @@ import {
   DollarSign, TrendingUp, Gamepad2, Grid, GraduationCap, Clock, 
   BookOpen, AlignLeft, CheckCircle, ArrowRight, X, Share2, Link, Check 
 } from 'lucide-react';
-import { BRANCH_OPTIONS } from '../data';
+import { useStaticData } from '../contexts/StaticDataContext';
 import { InternshipDomain } from '../types';
 import { useDomains } from '../hooks/useDomains';
 
@@ -29,6 +29,7 @@ const iconMap: Record<string, any> = {
 };
 
 export default function InternshipsView({
+  currentTab,
   setCurrentTab,
   selectedCategoryFilter,
   setSelectedCategoryFilter,
@@ -39,6 +40,7 @@ export default function InternshipsView({
   onClearSharedCourseId
 }: InternshipsViewProps) {
   const allDomains = useDomains();
+  const { branchOptions: BRANCH_OPTIONS } = useStaticData();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<InternshipDomain | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('All');

@@ -6,12 +6,9 @@ import {
 import { useDomains } from '../hooks/useDomains';
 import { auth, db } from '../firebase';
 import { getDoc, doc, setDoc, getDocs, collection, query, where, addDoc } from 'firebase/firestore';
-import { INTERNSHIP_DOMAINS, BRANCH_OPTIONS, HARDCODED_COLLEGES } from '../data';
-import { EXTENDED_COLLEGES } from '../colleges';
+import { useStaticData } from '../contexts/StaticDataContext';
 import type { EnrollmentState, PartnerCollege, Coupon } from '../types';
 import { StudentUser } from '../types';
-import { downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
-
 // ── Batch Helpers ──────────────────────────────────────────────────────────
 // Alpha batch → 1st of each month
 // Gamma batch → 15th of each month
@@ -64,9 +61,10 @@ export default function EnrollmentWizard({
   setPreselectedDomainId,
   onEnrollmentComplete,
   setCurrentTab,
-  currentUser
+  currentUser 
 }: EnrollmentWizardProps) {
-  const allDomains = useDomains();
+  const domains = useDomains();
+  const { branchOptions: BRANCH_OPTIONS, hardcodedColleges: HARDCODED_COLLEGES, extendedColleges: EXTENDED_COLLEGES } = useStaticData();
   // Partner Colleges list
   const [partnerColleges, setPartnerColleges] = useState<PartnerCollege[]>(HARDCODED_COLLEGES);
   const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
@@ -84,10 +82,10 @@ export default function EnrollmentWizard({
         // Add the massive 10k list
         EXTENDED_COLLEGES.forEach((college, i) => {
           const id = `extended_${i}`;
-          if (!Array.from(mergedMap.values()).some(c => (c.collegeName || '').toLowerCase() === (college.name || '').toLowerCase())) {
+          if (!Array.from(mergedMap.values()).some(c => (c.collegeName || '').toLowerCase() === (college.collegeName || '').toLowerCase())) {
             mergedMap.set(id, {
               id,
-              collegeName: college.name,
+              collegeName: college.collegeName,
               coordinatorName: '',
               coordinatorPhone: '',
               coordinatorEmail: '',
@@ -395,7 +393,7 @@ export default function EnrollmentWizard({
     }, 2500);
   };
 
-  const selectedDomainObject = allDomains.find(domain => domain.id === formData.domainId) || allDomains[0];
+  const selectedDomainObject = domains.find(domain => domain.id === formData.domainId) || domains[0];
 
   return (
     <div className="relative overflow-hidden bg-transparent text-slate-800 py-12 md:py-16">
@@ -685,7 +683,7 @@ export default function EnrollmentWizard({
                           onChange={(e) => setFormData({ ...formData, domainId: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
                         >
-                          {allDomains.map((domain) => (
+                          {domains.map((domain) => (
                             <option key={domain.id} value={domain.id}>
                               {domain.title} ({domain.category})
                             </option>
@@ -1356,8 +1354,8 @@ export default function EnrollmentWizard({
             {/* Redirection / Dashboard actions */}
             <div className="flex flex-wrap justify-center gap-4">
               <button
-                onClick={() => {
-                  downloadAcceptanceLetterPDF(synthesizedOffer, selectedDomainObject.title);
+                onClick={async () => {
+                  (await import('../utils/pdfGenerator')).downloadAcceptanceLetterPDF(synthesizedOffer, selectedDomainObject.title);
                 }}
                 className="px-5 py-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs sm:text-sm font-semibold flex items-center gap-1.5 text-slate-600 hover:text-slate-800 transition-all duration-150 cursor-pointer"
               >

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { InternshipDomain } from '../types';
-import { INTERNSHIP_DOMAINS } from '../data';
+import { useStaticData } from '../contexts/StaticDataContext';
 
 /**
  * Shared hook that merges hardcoded domains with Firestore-managed domains.
@@ -10,6 +10,7 @@ import { INTERNSHIP_DOMAINS } from '../data';
  * Subscribes in real-time via onSnapshot so new domains appear instantly.
  */
 export function useDomains(): InternshipDomain[] {
+  const { domains: staticDomains } = useStaticData();
   const [firestoreDomains, setFirestoreDomains] = useState<InternshipDomain[]>([]);
 
   useEffect(() => {
@@ -24,9 +25,9 @@ export function useDomains(): InternshipDomain[] {
 
   const allDomains = useMemo(() => {
     const fsIds = firestoreDomains.map(d => d.id);
-    const hardcoded = INTERNSHIP_DOMAINS.filter(d => !fsIds.includes(d.id));
+    const hardcoded = staticDomains.filter(d => !fsIds.includes(d.id));
     return [...firestoreDomains, ...hardcoded];
-  }, [firestoreDomains]);
+  }, [firestoreDomains, staticDomains]);
 
   return allDomains;
 }

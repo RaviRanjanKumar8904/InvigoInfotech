@@ -36,7 +36,9 @@ function PageLoader() {
   );
 }
 
-export default function App() {
+import { StaticDataProvider } from './contexts/StaticDataContext';
+
+function AppContent() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('verify')) return 'verify';
@@ -509,5 +511,14 @@ export default function App() {
       </a>
 
     </div>
+  );
+}
+
+
+export default function App() {
+  return (
+    <StaticDataProvider>
+      <AppContent />
+    </StaticDataProvider>
   );
 }

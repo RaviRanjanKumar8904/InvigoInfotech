@@ -14,11 +14,11 @@ import {
 import { db } from '../firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, getDocs, getDoc, addDoc, query, where } from 'firebase/firestore';
 import { EnrollmentState, ActivityLog, PortalSettings, ErrorReport, StudyMaterial, MCQQuestion, InternshipDomain, Coupon, PartnerCollege } from '../types';
-import { INTERNSHIP_DOMAINS, DEFAULT_MCQ_QUESTIONS, HARDCODED_COLLEGES } from '../data';
+import { useStaticData } from '../contexts/StaticDataContext';
 
 
 import { useDomains } from '../hooks/useDomains';
-import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAcceptanceLetterPDF } from '../utils/pdfGenerator';
+
 
 interface AdminPanelProps {
   currentUser: any;
@@ -26,9 +26,24 @@ interface AdminPanelProps {
 }
 type AdminSection = 'dashboard' | 'users' | 'certificates' | 'certRequests' | 'analytics' | 'logs' | 'errors' | 'communication' | 'domains' | 'materials' | 'mcqTests' | 'testResultsView' | 'coupons' | 'mentorBookings' | 'settings' | 'colleges';
 // ─── Helper: resolve domain title from domainId ───
-function getDomainTitle(domainId: string): string {
-  const domain = INTERNSHIP_DOMAINS.find(d => d.id === domainId);
+function getDomainTitle(domainId: string, domains): string {
+  const domain = domains?.find(d => d.id === domainId);
   return domain ? domain.title : domainId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+
+// ─── Helper: determine college type ───
+function getCollegeType(collegeName: string): string {
+  if (!collegeName) return 'Other';
+  const name = collegeName.toLowerCase();
+  if (name.includes('engineering') || name.includes('technology') || name.includes('institute of technology') || name.includes('b.tech') || name.includes('btech')) return 'B.Tech';
+  if (name.includes('polytechnic') || name.includes('diploma')) return 'Diploma';
+  if (name.includes('bca') || name.includes('computer application')) return 'BCA';
+  if (name.includes('science') || name.includes('b.sc')) return 'B.Sc';
+  if (name.includes('business') || name.includes('management') || name.includes('mba')) return 'MBA';
+  if (name.includes('commerce') || name.includes('b.com')) return 'B.Com';
+  if (name.includes('arts') || name.includes(' b.a ') || name.includes(' b.a.') || name.endsWith(' ba')) return 'BA';
+  return 'Other';
 }
 
 // ─── Helper: check if internship duration is complete ───
@@ -57,11 +72,16 @@ function getCompletionPct(startDate: string, durationWeeks: number): number {
   return Math.min(100, Math.max(0, Math.round((elapsed / totalMs) * 100)));
 }
 
+
+
 // ═══════════════════════════════════════════════════════════
 //  MAIN ADMIN PANEL COMPONENT
+
+
 // ═══════════════════════════════════════════════════════════
 
 export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelProps) {
+  const { domains, defaultMcqQuestions, hardcodedColleges } = useStaticData();
   const [activeSection, setActiveSection] = useState<AdminSection>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [allEnrollments, setAllEnrollments] = useState<EnrollmentState[]>([]);
@@ -134,6 +154,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [allColleges, setAllColleges] = useState<PartnerCollege[]>([]);
   const [collegeSearchQuery, setCollegeSearchQuery] = useState('');
   const [collegeStateFilter, setCollegeStateFilter] = useState('All');
+  const [collegeTypeFilter, setCollegeTypeFilter] = useState('All');
   const [showAddCollegeModal, setShowAddCollegeModal] = useState(false);
   const [isEditingCollege, setIsEditingCollege] = useState(false);
   const [editingCollegeId, setEditingCollegeId] = useState<string | null>(null);
@@ -471,7 +492,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         });
       }
 
-      addLog(`Admin enrolled ${enrollForm.fullName} into ${getDomainTitle(enrollForm.domainId)}`, 'user');
+      addLog(`Admin enrolled ${enrollForm.fullName} into ${getDomainTitle(enrollForm.domainId, domains)}`, 'user');
       setShowEnrollModal(false);
       setEnrollForm({
         fullName: '', email: '', phone: '', collegeName: '',
@@ -493,7 +514,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     if (!changingDomainFor || !newDomainId) return;
     try {
       await updateDoc(doc(db, 'enrollments', changingDomainFor.candidateId), { domainId: newDomainId });
-      addLog(`Changed domain for ${changingDomainFor.fullName} → ${getDomainTitle(newDomainId)}`, 'user');
+      addLog(`Changed domain for ${changingDomainFor.fullName} → ${getDomainTitle(newDomainId, domains)}`, 'user');
       setChangingDomainFor(null);
     } catch (err: any) {
       alert(`Domain change failed: ${err.message}`);
@@ -682,7 +703,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     
     const zip = new JSZip();
     for (const enr of eligible) {
-      const pdfBytes = await downloadCertificatePDF(enr, getDomainTitle(enr.domainId), true);
+      const pdfBytes = await (await import('../utils/pdfGenerator')).downloadCertificatePDF(enr, getDomainTitle(enr.domainId, domains), true);
       if (pdfBytes) {
         zip.file(`${enr.candidateId}_${enr.fullName.replace(/\s+/g, '_')}_Certificate.pdf`, pdfBytes);
       }
@@ -766,7 +787,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const domainDistribution = useMemo(() => {
     const map: Record<string, number> = {};
     allEnrollments.forEach(e => {
-      const title = getDomainTitle(e.domainId);
+      const title = getDomainTitle(e.domainId, domains);
       map[title] = (map[title] || 0) + 1;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -865,7 +886,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
 
   // Seed default MCQ questions for a domain
   const handleSeedQuestions = async (domainId: string) => {
-    const defaults = DEFAULT_MCQ_QUESTIONS[domainId];
+    const defaults = defaultMcqQuestions[domainId];
     if (!defaults) return;
     try {
       for (const q of defaults) {
@@ -880,7 +901,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     let totalSeeded = 0;
     try {
       for (const domain of allDomains) {
-        const defaults = DEFAULT_MCQ_QUESTIONS[domain.id];
+        const defaults = defaultMcqQuestions[domain.id];
         if (defaults) {
           for (const q of defaults) {
             await addDoc(collection(db, 'mcqQuestions'), { domainId: domain.id, ...q });
@@ -968,7 +989,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     { id: 'certRequests', label: 'Cert Requests', icon: Award, badge: allEnrollments.filter(e => e.certificateRequested && !e.certificateIssued).length },
     { id: 'domains', label: 'Domain Management', icon: Globe },
     { id: 'materials', label: 'Study Materials', icon: BookOpen, badge: allMaterials.length },
-    { id: 'colleges', label: 'Partner Colleges', icon: Globe, badge: allColleges.length + HARDCODED_COLLEGES.length },
+    { id: 'colleges', label: 'Partner Colleges', icon: Globe, badge: allColleges.length + hardcodedColleges.length },
     { id: 'mcqTests', label: 'MCQ Tests', icon: FileQuestion, badge: allQuestions.length },
 
     { id: 'testResultsView', label: 'Test Results', icon: CheckCircle, badge: testResults.length },
@@ -983,9 +1004,13 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // Log filter
   const filteredLogs = logFilter === 'all' ? logs : logs.filter(l => l.type === logFilter);
 
-  // ═══════════════════════════════════════════════════════════
+  
+
+// ═══════════════════════════════════════════════════════════
   //   R E N D E R
-  // ═══════════════════════════════════════════════════════════
+  
+
+// ═══════════════════════════════════════════════════════════
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
@@ -1374,7 +1399,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   }, {})).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5).map(([dId, rev]: any) => (
                     <div key={dId}>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-semibold text-slate-700">{getDomainTitle(dId)}</span>
+                        <span className="font-semibold text-slate-700">{getDomainTitle(dId, domains)}</span>
                         <span className="font-bold text-slate-600">₹{rev.toLocaleString()}</span>
                       </div>
                       <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -1416,7 +1441,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                           <div className="font-bold text-slate-800">{e.fullName}</div>
                           <div className="text-[10px] text-slate-400">{e.email}</div>
                         </td>
-                        <td className="py-3 px-4">{getDomainTitle(e.domainId)} ({e.durationWeeks}W)</td>
+                        <td className="py-3 px-4">{getDomainTitle(e.domainId, domains)} ({e.durationWeeks}W)</td>
                         <td className="py-3 px-4 text-center">
                           {e.paymentVerified ? <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded font-bold">Yes</span> : <span className="text-red-600 bg-red-50 px-2 py-1 rounded font-bold">No</span>}
                         </td>
@@ -1535,7 +1560,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   className="bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:ring-2 focus:ring-blue-200 outline-none shadow-sm"
                 >
                   <option value="All">All Domains</option>
-                  {INTERNSHIP_DOMAINS.map(d => (
+                  {domains.map(d => (
                     <option key={d.id} value={d.id}>{d.title}</option>
                   ))}
                 </select>
@@ -1641,7 +1666,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                 <span>{enr.email}</span>
                               </div>
                               <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                                {getDomainTitle(enr.domainId)}
+                                {getDomainTitle(enr.domainId, domains)}
                               </span>
                             </td>
 
@@ -1736,7 +1761,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                     Issued ✓
                                   </span>
                                   <button
-                                    onClick={() => downloadCertificatePDF(enr, getDomainTitle(enr.domainId))}
+                                    onClick={async () => (await import('../utils/pdfGenerator')).downloadCertificatePDF(enr, getDomainTitle(enr.domainId, domains))}
                                     className="flex items-center gap-1 text-[9px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
                                   >
                                     <Download className="h-3 w-3" /> Download PDF
@@ -1921,7 +1946,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                               const folder = zip.folder("Certificates");
                               if (!folder) return;
                               for (const e of eligible) {
-                                const pdfBytes = await downloadCertificatePDF(e, getDomainTitle(e.domainId), true);
+                                const pdfBytes = await (await import('../utils/pdfGenerator')).downloadCertificatePDF(e, getDomainTitle(e.domainId, domains), true);
                                 if (pdfBytes) {
                                   folder.file(`Certificate_${e.fullName.replace(/\s+/g, '_')}.pdf`, pdfBytes);
                                   await updateDoc(doc(db, 'enrollments', e.candidateId), {
@@ -1969,7 +1994,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                             <span className="font-bold text-sm text-slate-900">{enr.fullName}</span>
                             <span className="text-[9px] font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{enr.candidateId}</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{getDomainTitle(enr.domainId)} • {enr.durationWeeks} weeks • {enr.startDate || 'No start date'}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{getDomainTitle(enr.domainId, domains)} • {enr.durationWeeks} weeks • {enr.startDate || 'No start date'}</div>
                         </div>
 
                         {/* Progress */}
@@ -1989,7 +2014,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                             <div className="flex items-center gap-1.5">
                               <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Issued ✓</span>
                               <button
-                                onClick={() => downloadCertificatePDF(enr, getDomainTitle(enr.domainId))}
+                                onClick={async () => (await import('../utils/pdfGenerator')).downloadCertificatePDF(enr, getDomainTitle(enr.domainId, domains))}
                                 className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 cursor-pointer transition-all"
                                 title="Download PDF"
                               >
@@ -2538,7 +2563,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-sm text-slate-800 truncate">{material.title}</h4>
                       <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                        <span className="font-mono">{getDomainTitle(material.domainId)}</span>
+                        <span className="font-mono">{getDomainTitle(material.domainId, domains)}</span>
                         <span>•</span>
                         <span>Order: {material.order}</span>
                         <span>•</span>
@@ -2585,11 +2610,11 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {Object.keys(DEFAULT_MCQ_QUESTIONS).map(domainId => {
+                  {Object.keys(defaultMcqQuestions).map(domainId => {
                     const existing = allQuestions.filter(q => q.domainId === domainId).length;
                     return (
                       <button key={domainId} onClick={() => handleSeedQuestions(domainId)} disabled={existing >= 10} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border cursor-pointer ${existing >= 10 ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'}`}>
-                        {getDomainTitle(domainId)} ({existing}/10)
+                        {getDomainTitle(domainId, domains)} ({existing}/10)
                       </button>
                     );
                   })}
@@ -2613,7 +2638,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <div key={q.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <span className="text-[10px] text-slate-500 font-mono">{getDomainTitle(q.domainId)} • Q{idx + 1}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">{getDomainTitle(q.domainId, domains)} • Q{idx + 1}</span>
                         <p className="text-sm font-bold text-slate-800 mt-1">{q.question}</p>
                       </div>
                       <button onClick={() => handleRemoveQuestion(q.id)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 cursor-pointer">
@@ -2653,7 +2678,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         {testResults.slice(0, 20).map(r => (
                           <tr key={r.id} className="border-b border-slate-100">
                             <td className="px-4 py-2 text-slate-800 font-medium">{r.studentEmail}</td>
-                            <td className="px-4 py-2 text-slate-600">{getDomainTitle(r.domainId)}</td>
+                            <td className="px-4 py-2 text-slate-600">{getDomainTitle(r.domainId, domains)}</td>
                             <td className="px-4 py-2 text-center font-bold">{r.score}%</td>
                             <td className="px-4 py-2 text-center">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{r.passed ? 'PASS' : 'FAIL'}</span>
@@ -2692,7 +2717,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       {testResults.sort((a, b) => new Date(b.completedAt || b.gradedAt || b.submittedAt || 0).getTime() - new Date(a.completedAt || a.gradedAt || a.submittedAt || 0).getTime()).map(r => (
                         <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="px-4 py-3 text-slate-800 font-medium">{r.studentEmail || r.enrollmentId || 'Unknown'}</td>
-                          <td className="px-4 py-3 text-slate-600">{getDomainTitle(r.domainId)}</td>
+                          <td className="px-4 py-3 text-slate-600">{getDomainTitle(r.domainId, domains)}</td>
                           <td className="px-4 py-3 text-center font-bold">{r.score}%</td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${r.passed ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{r.passed ? 'PASS' : 'FAIL'}</span>
@@ -2810,7 +2835,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="px-4 py-3 font-medium text-slate-800">{booking.studentName}</td>
                           <td className="px-4 py-3 text-slate-600">{booking.studentEmail}</td>
-                          <td className="px-4 py-3 text-slate-600">{getDomainTitle(booking.domainId)}</td>
+                          <td className="px-4 py-3 text-slate-600">{getDomainTitle(booking.domainId, domains)}</td>
                           <td className="px-4 py-3 text-center text-slate-600">{booking.preferredDate} {booking.preferredTime}</td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : booking.status === 'declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
@@ -2848,7 +2873,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
           {activeSection === 'colleges' && (() => {
             const mergedCollegesMap = new Map<string, PartnerCollege>();
             
-            HARDCODED_COLLEGES.forEach(col => {
+            hardcodedColleges.forEach(col => {
               mergedCollegesMap.set(col.id, { ...col });
             });
             
@@ -2878,7 +2903,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
             const filteredColleges = finalColleges.filter(c => 
               ((c.collegeName || '').toLowerCase().includes((collegeSearchQuery || '').toLowerCase()) || 
               (c.coordinatorName || '').toLowerCase().includes(collegeSearchQuery.toLowerCase())) &&
-              (collegeStateFilter === 'All' || c.state === collegeStateFilter)
+              (collegeStateFilter === 'All' || c.state === collegeStateFilter) &&
+              (collegeTypeFilter === 'All' || getCollegeType(c.collegeName) === collegeTypeFilter)
             );
             
             const uniqueStates = Array.from(new Set(finalColleges.map(c => c.state).filter(Boolean))).sort();
@@ -3264,7 +3290,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700">Domain / Course</label>
                     <select value={enrollForm.domainId} onChange={(e) => setEnrollForm({...enrollForm, domainId: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500">
-                      {INTERNSHIP_DOMAINS.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
+                      {domains.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1">
@@ -3306,7 +3332,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700">Select New Domain</label>
                   <select value={newDomainId} onChange={(e) => setNewDomainId(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500">
-                    {INTERNSHIP_DOMAINS.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
+                    {domains.map(d => <option key={d.id} value={d.id}>{d.title}</option>)}
                   </select>
                 </div>
               </div>
@@ -3640,7 +3666,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   </div>
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Domain</span>
-                    <p className="text-sm font-medium text-slate-800">{getDomainTitle(viewingStudent.domainId)}</p>
+                    <p className="text-sm font-medium text-slate-800">{getDomainTitle(viewingStudent.domainId, domains)}</p>
                   </div>
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Payment Status</span>
@@ -3659,7 +3685,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       testResults.filter(tr => tr.studentEmail.toLowerCase() === viewingStudent.email.toLowerCase()).sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()).map(tr => (
                         <div key={tr.id} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
                           <div>
-                            <p className="text-sm font-bold text-slate-800">{getDomainTitle(tr.domainId)}</p>
+                            <p className="text-sm font-bold text-slate-800">{getDomainTitle(tr.domainId, domains)}</p>
                             <p className="text-xs text-slate-500">{new Date(tr.completedAt).toLocaleDateString()}</p>
                           </div>
                           <div className="text-right">

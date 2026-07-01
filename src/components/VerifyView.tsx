@@ -5,7 +5,7 @@ import { useDomains } from '../hooks/useDomains';
 import { motion } from 'motion/react';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
-import { downloadCertificatePDF } from '../utils/pdfGenerator';
+
 
 interface VerifyViewProps {
   enrollments: EnrollmentState[];
@@ -276,10 +276,10 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
                   <div className="pt-2 flex flex-col sm:flex-row gap-3">
                     {searchResult.status === 'Completed' ? (
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (searchResult.rawEnrollment) {
                             const domainObj = allDomains.find(d => d.id === searchResult.domainId);
-                            downloadCertificatePDF(searchResult.rawEnrollment, domainObj ? domainObj.title : 'Advanced Technology Intern');
+                            (await import('../utils/pdfGenerator')).downloadCertificatePDF(searchResult.rawEnrollment, domainObj ? domainObj.title : 'Advanced Technology Intern');
                           } else {
                             alert("Demo Certificate Verification PDF downloaded successfully!");
                           }

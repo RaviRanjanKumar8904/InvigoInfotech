@@ -1,6 +1,6 @@
-import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star, MessageCircle } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Award, ShieldCheck, Milestone, GraduationCap, Users, Code, BookOpen, User, Calendar, FileText, Trash2, HelpCircle, Phone, Star, MessageCircle, Cpu, Terminal, FlaskConical, Briefcase } from 'lucide-react';
 import { motion } from 'motion/react';
-import { TESTIMONIALS } from '../data';
+import { useStaticData } from '../contexts/StaticDataContext';
 import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState } from '../types';
 
@@ -22,6 +22,7 @@ export default function HomeView({
   onSelectDomainForEnrollment
 }: HomeViewProps) {
   const allDomains = useDomains();
+  const { testimonials: TESTIMONIALS } = useStaticData();
   
   const handleDegreeFocus = (degree: 'B.Tech' | 'Diploma' | 'BCA' | 'B.Sc' | 'MBA' | 'BA' | 'B.Com') => {
     setSelectedDegreeFilter(degree);

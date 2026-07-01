@@ -39,16 +39,6 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthNotAllowed, setIsAuthNotAllowed] = useState(false);
 
-  // Load or initialize registered accounts
-  const getRegisteredUsers = (): any[] => {
-    try {
-      const saved = localStorage.getItem('invigo_registered_students');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn(e);
-    }
-    return [];
-  };
 
   // ─── Google Sign-In Handler ───
   const handleGoogleSignIn = async () => {
@@ -188,25 +178,6 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
             currentYear: fetchedData.currentYear || '1st Year',
             passingYear: fetchedData.passingYear || '2028'
           };
-        } else {
-          // If Firestore is empty/unconfigured, fall back to check if they have local profile
-          const users = getRegisteredUsers();
-          const localMatch = users.find(u => u.email.toLowerCase() === trimmedEmail.toLowerCase());
-          if (localMatch) {
-            profileData = {
-              id: fbUser.uid,
-              fullName: localMatch.fullName,
-              email: localMatch.email,
-              phone: localMatch.phone,
-              collegeName: localMatch.collegeName,
-              degree: localMatch.degree,
-              fieldOfStudy: localMatch.fieldOfStudy,
-              currentYear: localMatch.currentYear,
-              passingYear: localMatch.passingYear
-            };
-            // Sync local profile metadata back up to Firestore
-            await setDoc(userDocRef, { ...localMatch, uid: fbUser.uid });
-          }
         }
       } catch (docErr) {
         console.warn('Could not load user profile from Firestore:', docErr);
@@ -302,14 +273,6 @@ export default function AuthView({ onLoginSuccess, setCurrentTab, preselectedDom
         console.warn('Failed to save profile in Firestore:', err);
       }
 
-      // Local storage fallback for maximum safety
-      try {
-        const users = getRegisteredUsers();
-        const updatedUsers = [...users, { ...newUserProfile, id: fbUser.uid }];
-        localStorage.setItem('invigo_registered_students', JSON.stringify(updatedUsers));
-      } catch (lsErr) {
-        console.warn('Could not persist registration account locally:', lsErr);
-      }
 
       setSuccessMsg('Account registered successfully under your Firebase project!');
       setIsLoading(false);

@@ -9,7 +9,7 @@ import {
 import { useDomains } from '../hooks/useDomains';
 import { EnrollmentState, StudyMaterial, MCQQuestion } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { downloadCertificatePDF, downloadOfferLetterPDF, downloadAttendanceSheetPDF } from '../utils/pdfGenerator';
+
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, doc, updateDoc, setDoc, deleteField } from 'firebase/firestore';
 
@@ -609,7 +609,7 @@ export default function StudentNexus({
                         <span>Payment Verified</span>
                       </div>
                       <button
-                        onClick={() => downloadOfferLetterPDF(activeEnrollment, matchedDomain.title)}
+                        onClick={async () => (await import('../utils/pdfGenerator')).downloadOfferLetterPDF(activeEnrollment, matchedDomain.title)}
                         className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full font-bold transition-all shadow-sm cursor-pointer"
                       >
                         <Download className="h-3.5 w-3.5" />
@@ -1176,8 +1176,8 @@ export default function StudentNexus({
 
                       <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
                         <button
-                          onClick={() => {
-                            downloadCertificatePDF(activeEnrollment, matchedDomain.title || 'Advanced Technology Intern');
+                          onClick={async () => {
+                  (await import('../utils/pdfGenerator')).downloadCertificatePDF(activeEnrollment, matchedDomain.title || 'Advanced Technology Intern');
                           }}
                           className="flex-grow py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex justify-center items-center gap-1.5 active:scale-98 transition-all cursor-pointer shadow-md inline-flex items-center justify-center"
                         >
@@ -1672,6 +1672,7 @@ export default function StudentNexus({
                     </div>
                     <button 
                       onClick={async () => {
+                        const { downloadAttendanceSheetPDF } = await import('../utils/pdfGenerator');
                         await downloadAttendanceSheetPDF(activeEnrollment, matchedDomain.title, activeEnrollment.attendancePercentage || 0);
                       }}
                       className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all active:scale-95 cursor-pointer"

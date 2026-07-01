@@ -3,6 +3,7 @@ import { ArrowLeft, RefreshCw, AlertTriangle, Video } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { StudyMaterial } from '../types';
+import DOMPurify from 'dompurify';
 
 export default function VideoPlayerView({ setCurrentTab }: { setCurrentTab: (tab: string) => void }) {
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
@@ -82,7 +83,12 @@ export default function VideoPlayerView({ setCurrentTab }: { setCurrentTab: (tab
           {material.type === 'video_embed' && material.embedCode ? (
             <div 
               className="w-full h-full flex items-center justify-center [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0 [&>iframe]:max-w-full"
-              dangerouslySetInnerHTML={{ __html: material.embedCode }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(material.embedCode, {
+                  ALLOWED_TAGS: ['iframe'],
+                  ALLOWED_ATTR: ['src', 'width', 'height', 'allow', 'allowfullscreen']
+                }) 
+              }}
             />
           ) : (
             <video src={material.url} controls autoPlay className="w-full h-full object-contain" />

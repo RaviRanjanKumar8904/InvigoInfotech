@@ -11,9 +11,10 @@ import {
   Building,
   GraduationCap
 } from 'lucide-react';
-import { FAQS } from '../data';
+import { useStaticData } from '../contexts/StaticDataContext';
 
 export default function AboutView() {
+  const { faqs: FAQS } = useStaticData();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const toggleFaq = (index: number) => {

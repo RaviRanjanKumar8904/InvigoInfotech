@@ -1,4 +1,4 @@
-export const EXTENDED_COLLEGES = [
+[
   {
     "name": "A C T College of Engineering and Technology",
     "state": "Tamil Nadu"
@@ -7987,4 +7987,4 @@ export const EXTENDED_COLLEGES = [
     "name": "Yug Chetna College",
     "state": "Uttar Pradesh"
   }
-];
+]
