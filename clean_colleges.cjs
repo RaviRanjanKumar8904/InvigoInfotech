@@ -1,75 +1,67 @@
 const fs = require('fs');
 
-const fileContent = fs.readFileSync('src/colleges.ts', 'utf8');
+const data = fs.readFileSync('src/colleges.ts', 'utf8');
+const match = data.match(/export const EXTENDED_COLLEGES = (\[.*\]);/s);
 
-// Match the array content
-const match = fileContent.match(/export const EXTENDED_COLLEGES = \[([\s\S]*?)\];/);
-if (!match) {
-  console.log("Could not find the array.");
-  process.exit(1);
-}
+if (match) {
+  let colleges = JSON.parse(match[1]);
+  
+  colleges = colleges.map(c => {
+    let name = c.name;
+    
+    // Remove "Mob. No" and anything after it
+    name = name.replace(/Mob\.?\s*No.*/i, '');
+    
+    // Remove "Ph. No" and anything after it
+    name = name.replace(/Ph\.?\s*No.*/i, '');
+    
+    // Remove parentheses and their contents
+    name = name.replace(/\([^)]*\)/g, '');
+    
+    // Remove unclosed parentheses and anything after them
+    name = name.replace(/\(.*/g, '');
 
-let collegesStr = match[1];
-// Extract individual strings
-let colleges = [];
-const regex = /"([^"]+)"/g;
-let m;
-while ((m = regex.exec(collegesStr)) !== null) {
-  colleges.push(m[1]);
-}
+    // Remove numbers
+    name = name.replace(/[0-9]/g, '');
+    
+    // Remove commas
+    name = name.replace(/,/g, '');
 
-console.log(`Original count: ${colleges.length}`);
+    // Remove other weird characters but keep letters, dots, hyphens, ampersands, spaces
+    name = name.replace(/[^a-zA-Z\s.&'-]/g, '');
 
-// Step 1: Clean names
-colleges = colleges.map(name => {
-  let cleanName = name;
-  
-  // Remove leading numbers like "1- ", "60 ", "91 "
-  cleanName = cleanName.replace(/^\d+[\-\.]?\s*/, '');
-  
-  // Remove mobile numbers "Mob.No. 1234567890", "Ph.No.", etc.
-  cleanName = cleanName.replace(/Mob\.?No\.?\s*[\d\-\+]+/gi, '');
-  cleanName = cleanName.replace(/Ph\.?No\.?\s*[\d\-\+]+/gi, '');
-  cleanName = cleanName.replace(/Contact\.?No\.?\s*[\d\-\+]+/gi, '');
-  
-  // Remove standalone phone numbers (10+ digits, maybe with dashes)
-  cleanName = cleanName.replace(/\b\d{4,5}-\d{5,8}\b/g, '');
-  cleanName = cleanName.replace(/\b\d{10,12}\b/g, '');
-  
-  // Remove trailing commas, spaces, dashes, and backslashes
-  cleanName = cleanName.replace(/[,-\s\\]+$/, '');
-  
-  // Escape any remaining double quotes inside the string
-  cleanName = cleanName.replace(/"/g, '\\"');
-  
-  // Trim spaces
-  return cleanName.trim();
-});
+    // Clean up multiple spaces
+    name = name.replace(/\s+/g, ' ').trim();
 
-// Step 2: Filter domains
-const exclusionKeywords = [
-  'law', 'medical', 'dental', 'nursing', 'ayurvedic', 'homeopathic', 
-  'pharmacy', 'agriculture', 'animal', 'sanskrit', 'sports', 'veterinary', 
-  'hospital', 'clinic', 'fashion', 'music', 'yoga', 'theology'
-];
+    // Clean up trailing hyphens, dots or ampersands
+    name = name.replace(/^[-&.\s]+|[-&.\s]+$/g, '');
 
-colleges = colleges.filter(name => {
-  const lower = name.toLowerCase();
-  for (const keyword of exclusionKeywords) {
-    if (lower.includes(keyword)) {
-      return false; // exclude
+    c.name = name;
+    return c;
+  });
+
+  // Filter out any that became empty
+  colleges = colleges.filter(c => c.name.length > 0);
+
+  // Remove duplicates after cleaning
+  const uniqueColleges = [];
+  const seen = new Set();
+  for (let c of colleges) {
+    const lower = c.name.toLowerCase();
+    if (!seen.has(lower)) {
+      seen.add(lower);
+      uniqueColleges.push(c);
     }
   }
-  return true;
-});
 
-// Step 3: Remove duplicates
-const uniqueColleges = Array.from(new Set(colleges)).filter(Boolean);
-uniqueColleges.sort((a, b) => a.localeCompare(b));
-
-console.log(`Final count: ${uniqueColleges.length}`);
-
-// Generate new file
-const newContent = `export const EXTENDED_COLLEGES = [\n  "${uniqueColleges.join('",\n  "')}"\n];\n`;
-fs.writeFileSync('src/colleges.ts', newContent);
-console.log('Saved to src/colleges.ts');
+  const newCode = "export const EXTENDED_COLLEGES = " + JSON.stringify(uniqueColleges, null, 2) + ";\n";
+  fs.writeFileSync('src/colleges.ts', newCode);
+  
+  console.log(`Cleaned colleges! Reduced from ${colleges.length} to ${uniqueColleges.length} unique colleges.`);
+  
+  // Print some samples to verify
+  console.log("\nSample clean names:");
+  for(let i=0; i<15; i++) {
+     console.log(uniqueColleges[i].name);
+  }
+}

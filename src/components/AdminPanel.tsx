@@ -133,6 +133,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   // Partner Colleges State
   const [allColleges, setAllColleges] = useState<PartnerCollege[]>([]);
   const [collegeSearchQuery, setCollegeSearchQuery] = useState('');
+  const [collegeStateFilter, setCollegeStateFilter] = useState('All');
   const [showAddCollegeModal, setShowAddCollegeModal] = useState(false);
   const [isEditingCollege, setIsEditingCollege] = useState(false);
   const [editingCollegeId, setEditingCollegeId] = useState<string | null>(null);
@@ -140,7 +141,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     collegeName: '',
     coordinatorName: '',
     coordinatorPhone: '',
-    coordinatorEmail: ''
+    coordinatorEmail: '',
+    state: ''
   });
   const [visibleCollegesCount, setVisibleCollegesCount] = useState(100);
 
@@ -892,6 +894,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         coordinatorName: newCollege.coordinatorName.trim(),
         coordinatorPhone: newCollege.coordinatorPhone.trim(),
         coordinatorEmail: newCollege.coordinatorEmail.trim(),
+        state: newCollege.state?.trim() || '',
         createdAt: new Date().toISOString()
       };
       
@@ -904,7 +907,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       }
       
       setShowAddCollegeModal(false);
-      setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '' });
+      setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '', state: '' });
       setEditingCollegeId(null);
       setIsEditingCollege(false);
     } catch (err) {
@@ -2862,9 +2865,12 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
             });
 
             const filteredColleges = finalColleges.filter(c => 
-              c.collegeName.toLowerCase().includes(collegeSearchQuery.toLowerCase()) || 
-              (c.coordinatorName || '').toLowerCase().includes(collegeSearchQuery.toLowerCase())
+              (c.collegeName.toLowerCase().includes(collegeSearchQuery.toLowerCase()) || 
+              (c.coordinatorName || '').toLowerCase().includes(collegeSearchQuery.toLowerCase())) &&
+              (collegeStateFilter === 'All' || c.state === collegeStateFilter)
             );
+            
+            const uniqueStates = Array.from(new Set(finalColleges.map(c => c.state).filter(Boolean))).sort();
 
             return (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -2883,6 +2889,18 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         onChange={(e) => setCollegeSearchQuery(e.target.value)}
                         className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 bg-white shadow-sm"
                       />
+                    </div>
+                    <div className="relative">
+                      <select 
+                        value={collegeStateFilter}
+                        onChange={(e) => setCollegeStateFilter(e.target.value)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                      >
+                        <option value="All">All States</option>
+                        {uniqueStates.map(st => (
+                          <option key={st as string} value={st as string}>{st as string}</option>
+                        ))}
+                      </select>
                     </div>
                     <button 
                       onClick={() => {
@@ -2919,6 +2937,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <div className="w-full text-xs">
                     <div className="bg-slate-50 border-b border-slate-200 flex">
                       <div className="flex-1 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-slate-600">College Name</div>
+                      <div className="w-32 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-slate-600">State</div>
                       <div className="w-48 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-slate-600">Coordinator Name</div>
                       <div className="w-40 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-center text-slate-600">Students Enrolled</div>
                       <div className="w-32 px-6 py-4 font-semibold text-xs uppercase tracking-wider text-right text-slate-600">Actions</div>
@@ -2936,6 +2955,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         <div key={col.id} className="flex border-b border-slate-100 hover:bg-slate-50 transition-colors items-center bg-white">
                           <div className="flex-1 px-6 py-2 font-semibold text-sm text-slate-800 truncate" title={col.collegeName}>
                             {col.collegeName}
+                          </div>
+                          <div className="w-32 px-6 py-2 text-slate-600 text-sm truncate">
+                            {col.state || <span className="text-slate-400 italic">N/A</span>}
                           </div>
                           <div className="w-48 px-6 py-2 text-slate-600">
                             <div className="font-medium text-slate-900 truncate">{col.coordinatorName || <span className="text-slate-400 italic">N/A</span>}</div>
@@ -2962,7 +2984,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                     collegeName: col.collegeName,
                                     coordinatorName: col.coordinatorName || '',
                                     coordinatorPhone: col.coordinatorPhone || '',
-                                    coordinatorEmail: col.coordinatorEmail || ''
+                                    coordinatorEmail: col.coordinatorEmail || '',
+                                    state: col.state || ''
                                   });
                                   setShowAddCollegeModal(true);
                                 }}
@@ -3747,6 +3770,16 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     value={newCollege.collegeName}
                     onChange={(e) => setNewCollege({ ...newCollege, collegeName: e.target.value })}
                     placeholder="e.g. Indian Institute of Technology"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State (Optional)</label>
+                  <input
+                    type="text"
+                    value={newCollege.state}
+                    onChange={(e) => setNewCollege({ ...newCollege, state: e.target.value })}
+                    placeholder="e.g. Karnataka"
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
                   />
                 </div>

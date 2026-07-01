@@ -179,5 +179,6 @@ export interface PartnerCollege {
   coordinatorName: string;
   coordinatorPhone: string;
   coordinatorEmail: string;
+  state?: string;
   createdAt: string;
 }

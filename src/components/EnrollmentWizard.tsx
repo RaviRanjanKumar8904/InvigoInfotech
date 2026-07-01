@@ -21,35 +21,29 @@ function getUpcomingBatches(): { label: string; value: string; type: 'Alpha' | '
   const batches: { label: string; value: string; type: 'Alpha' | 'Gamma'; startDate: string }[] = [];
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  // Generate batches for the current and next 2 months
-  for (let offset = 0; offset < 3; offset++) {
+  // Generate batches for the previous, current, and next month
+  for (let offset = -1; offset <= 1; offset++) {
     const refDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
     const year = refDate.getFullYear();
     const month = refDate.getMonth();
 
     // Alpha batch: 1st of the month
-    const alphaStart = new Date(year, month, 1);
-    if (alphaStart > today || offset === 0) {
-      const dateStr = alphaStart.toISOString().split('T')[0];
-      batches.push({
-        label: `Alpha Batch — ${monthNames[month]} ${year} (Starts 1st ${monthNames[month]})`,
-        value: `Alpha_${dateStr}`,
-        type: 'Alpha',
-        startDate: dateStr,
-      });
-    }
+    const dateStrAlpha = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    batches.push({
+      label: `Alpha Batch — ${monthNames[month]} ${year} (Starts 1st ${monthNames[month]})`,
+      value: `Alpha_${dateStrAlpha}`,
+      type: 'Alpha',
+      startDate: dateStrAlpha,
+    });
 
     // Gamma batch: 15th of the month
-    const gammaStart = new Date(year, month, 15);
-    if (gammaStart > today || offset === 0) {
-      const dateStr = gammaStart.toISOString().split('T')[0];
-      batches.push({
-        label: `Gamma Batch — ${monthNames[month]} ${year} (Starts 15th ${monthNames[month]})`,
-        value: `Gamma_${dateStr}`,
-        type: 'Gamma',
-        startDate: dateStr,
-      });
-    }
+    const dateStrGamma = `${year}-${String(month + 1).padStart(2, '0')}-15`;
+    batches.push({
+      label: `Gamma Batch — ${monthNames[month]} ${year} (Starts 15th ${monthNames[month]})`,
+      value: `Gamma_${dateStrGamma}`,
+      type: 'Gamma',
+      startDate: dateStrGamma,
+    });
   }
 
   // Sort by start date ascending
@@ -131,7 +125,7 @@ export default function EnrollmentWizard({
     currentYear: currentUser?.currentYear || '3rd Year',
     passingYear: currentUser?.passingYear || '2027',
     domainId: preselectedDomainId || 'ai_ml',
-    durationWeeks: 8,
+    durationWeeks: 4,
     batchType: 'Alpha' as 'Alpha' | 'Gamma',
     startDate: '',
     motivation: '',
