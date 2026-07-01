@@ -158,11 +158,17 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const [showAddCollegeModal, setShowAddCollegeModal] = useState(false);
   const [isEditingCollege, setIsEditingCollege] = useState(false);
   const [editingCollegeId, setEditingCollegeId] = useState<string | null>(null);
-  const [newCollege, setNewCollege] = useState({
+  const [newCollege, setNewCollege] = useState<{
+    collegeName: string;
+    type: string;
+    customType: string;
+    coordinators: { name: string; phone: string; email: string }[];
+    state: string;
+  }>({
     collegeName: '',
-    coordinatorName: '',
-    coordinatorPhone: '',
-    coordinatorEmail: '',
+    type: 'Auto-detect',
+    customType: '',
+    coordinators: [{ name: '', phone: '', email: '' }],
     state: ''
   });
   const [visibleCollegesCount, setVisibleCollegesCount] = useState(100);
@@ -774,6 +780,15 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     }
   };
 
+
+
+  
+
+
+
+
+
+
   // ─── Computed Metrics ───
   const totalStudents = allEnrollments.length;
   const verifiedPayments = allEnrollments.filter(e => e.paymentVerified).length;
@@ -918,14 +933,22 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
   const handleAddCollege = async () => {
     if (!newCollege.collegeName.trim()) return;
     try {
-      const data = {
+      const data: any = {
         collegeName: newCollege.collegeName.trim(),
-        coordinatorName: newCollege.coordinatorName.trim(),
-        coordinatorPhone: newCollege.coordinatorPhone.trim(),
-        coordinatorEmail: newCollege.coordinatorEmail.trim(),
+        coordinators: newCollege.coordinators.map(c => ({
+          name: c.name.trim(),
+          phone: c.phone.trim(),
+          email: c.email.trim()
+        })).filter(c => c.name || c.phone || c.email),
         state: newCollege.state?.trim() || '',
+        type: newCollege.type === 'Custom...' ? newCollege.customType.trim() : (newCollege.type === 'Auto-detect' ? getCollegeType(newCollege.collegeName.trim()) : newCollege.type),
         createdAt: new Date().toISOString()
       };
+      if (data.coordinators.length > 0) {
+        data.coordinatorName = data.coordinators[0].name;
+        data.coordinatorPhone = data.coordinators[0].phone;
+        data.coordinatorEmail = data.coordinators[0].email;
+      }
       
       if (isEditingCollege && editingCollegeId) {
         await setDoc(doc(db, 'partnerColleges', editingCollegeId), data, { merge: true });
@@ -936,7 +959,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       }
       
       setShowAddCollegeModal(false);
-      setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '', state: '' });
+      setNewCollege({ collegeName: '', type: 'Auto-detect', customType: '', coordinators: [{ name: '', phone: '', email: '' }], state: '' });
       setEditingCollegeId(null);
       setIsEditingCollege(false);
     } catch (err) {
@@ -2939,11 +2962,28 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         ))}
                       </select>
                     </div>
-                    <button 
+                    <div className="relative">
+                      <select 
+                        value={collegeTypeFilter}
+                        onChange={(e) => setCollegeTypeFilter(e.target.value)}
+                        className="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                      >
+                        <option value="All">All Types</option>
+                        <option value="B.Tech">B.Tech</option>
+                        <option value="Diploma">Diploma</option>
+                        <option value="BCA">BCA</option>
+                        <option value="B.Sc">B.Sc</option>
+                        <option value="MBA">MBA</option>
+                        <option value="B.Com">B.Com</option>
+                        <option value="BA">BA</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                                        <button 
                       onClick={() => {
                         setIsEditingCollege(false);
                         setEditingCollegeId(null);
-                        setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '', state: '' });
+                        setNewCollege({ collegeName: '', type: 'Auto-detect', customType: '', coordinators: [{ name: '', phone: '', email: '' }], state: '' });
                         setShowAddCollegeModal(true);
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2"
@@ -2992,19 +3032,31 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                         <div key={col.id} className="flex border-b border-slate-100 hover:bg-slate-50 transition-colors items-center bg-white">
                           <div className="flex-1 px-6 py-2 font-semibold text-sm text-slate-800 truncate" title={col.collegeName}>
                             {col.collegeName}
+                             <span className="ml-2 inline-block px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold tracking-wide uppercase align-middle">{(col.type && col.type !== 'Auto-detect' ? col.type : getCollegeType(col.collegeName))}</span>
                           </div>
                           <div className="w-32 px-6 py-2 text-slate-600 text-sm truncate">
                             {col.state || <span className="text-slate-400 italic">N/A</span>}
                           </div>
                           <div className="w-48 px-6 py-2 text-slate-600">
-                            <div className="font-medium text-slate-900 truncate">{col.coordinatorName || <span className="text-slate-400 italic">N/A</span>}</div>
-                            {(col.coordinatorPhone || col.coordinatorEmail) && (
-                              <div className="text-[10px] text-slate-500 mt-1 truncate">
-                                {col.coordinatorPhone && <span>{col.coordinatorPhone}</span>}
-                                {col.coordinatorPhone && col.coordinatorEmail && <span> • </span>}
-                                {col.coordinatorEmail && <span>{col.coordinatorEmail}</span>}
-                              </div>
-                            )}
+                            {(() => {
+                              const coords = col.coordinators && col.coordinators.length > 0 ? col.coordinators : [{ name: col.coordinatorName, phone: col.coordinatorPhone, email: col.coordinatorEmail }];
+                              const primary = coords[0];
+                              return (
+                                <>
+                                  <div className="font-medium text-slate-900 truncate flex items-center gap-1">
+                                    {primary.name || <span className="text-slate-400 italic">N/A</span>}
+                                    {coords.length > 1 && <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 text-[9px] rounded-full font-bold">+{coords.length - 1}</span>}
+                                  </div>
+                                  {(primary.phone || primary.email) && (
+                                    <div className="text-[10px] text-slate-500 mt-1 truncate">
+                                      {primary.phone && <span>{primary.phone}</span>}
+                                      {primary.phone && primary.email && <span> • </span>}
+                                      {primary.email && <span>{primary.email}</span>}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                           <div className="w-40 px-6 py-2 text-center flex justify-center">
                             <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
@@ -3019,9 +3071,11 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                   setEditingCollegeId(col.id);
                                   setNewCollege({
                                     collegeName: col.collegeName,
-                                    coordinatorName: col.coordinatorName || '',
-                                    coordinatorPhone: col.coordinatorPhone || '',
-                                    coordinatorEmail: col.coordinatorEmail || '',
+                                    type: col.type || 'Auto-detect',
+                                    customType: '',
+                                    coordinators: col.coordinators && col.coordinators.length > 0
+                                      ? [...col.coordinators]
+                                      : [{ name: col.coordinatorName || '', phone: col.coordinatorPhone || '', email: col.coordinatorEmail || '' }],
                                     state: col.state || ''
                                   });
                                   setShowAddCollegeModal(true);
@@ -3810,6 +3864,12 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                     placeholder="e.g. Indian Institute of Technology"
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
                   />
+                  {(newCollege.collegeName || '').length > 3 && allColleges.some(c => (c.collegeName || '').toLowerCase().includes((newCollege.collegeName || '').toLowerCase()) && c.id !== editingCollegeId) && (
+                    <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+                      <span className="bg-amber-100 p-0.5 rounded-full"><AlertCircle className="h-3 w-3" /></span>
+                      A college with a similar name already exists!
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">State (Optional)</label>
@@ -3822,34 +3882,57 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Name (Optional)</label>
-                  <input
-                    type="text"
-                    value={newCollege.coordinatorName}
-                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorName: e.target.value })}
-                    placeholder="e.g. Dr. Ramesh Kumar"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
-                  />
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">College Type</label>
+                  <select
+                    value={newCollege.type}
+                    onChange={(e) => setNewCollege({ ...newCollege, type: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm bg-white"
+                  >
+                    <option value="Auto-detect">Auto-detect from name</option>
+                    <option value="B.Tech">B.Tech</option>
+                    <option value="Diploma">Diploma</option>
+                    <option value="BCA">BCA</option>
+                    <option value="B.Sc">B.Sc</option>
+                    <option value="MBA">MBA</option>
+                    <option value="B.Com">B.Com</option>
+                    <option value="BA">BA</option>
+                    <option value="Other">Other</option>
+                    <option value="Custom...">Custom...</option>
+                  </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Phone (Optional)</label>
-                  <input
-                    type="text"
-                    value={newCollege.coordinatorPhone}
-                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorPhone: e.target.value })}
-                    placeholder="e.g. +91 9876543210"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Coordinator Email (Optional)</label>
-                  <input
-                    type="email"
-                    value={newCollege.coordinatorEmail}
-                    onChange={(e) => setNewCollege({ ...newCollege, coordinatorEmail: e.target.value })}
-                    placeholder="e.g. ramesh@iit.ac.in"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm"
-                  />
+                {newCollege.type === 'Custom...' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Specify Custom Type</label>
+                    <input type="text" value={newCollege.customType} onChange={(e) => setNewCollege({ ...newCollege, customType: e.target.value })} placeholder="e.g. Medical" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-sm" />
+                  </div>
+                )}
+                <div className="border-t border-slate-100 pt-4 mt-2">
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="text-xs font-bold text-slate-800">Coordinators</label>
+                    <button type="button" onClick={() => setNewCollege({...newCollege, coordinators: [...newCollege.coordinators, {name: '', phone: '', email: ''}]})} className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors">+ Add Coordinator</button>
+                  </div>
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                    {newCollege.coordinators.map((coord, idx) => (
+                      <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl relative group">
+                        {newCollege.coordinators.length > 1 && (
+                          <button type="button" onClick={() => {
+                            const newCoords = [...newCollege.coordinators];
+                            newCoords.splice(idx, 1);
+                            setNewCollege({...newCollege, coordinators: newCoords});
+                          }} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                        <div className="space-y-2">
+                          <input type="text" value={coord.name} onChange={(e) => { const newCoords = [...newCollege.coordinators]; newCoords[idx].name = e.target.value; setNewCollege({...newCollege, coordinators: newCoords}); }} placeholder="Name (e.g. Dr. Ramesh)" className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm bg-white" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <input type="text" value={coord.phone} onChange={(e) => { const newCoords = [...newCollege.coordinators]; newCoords[idx].phone = e.target.value; setNewCollege({...newCollege, coordinators: newCoords}); }} placeholder="Phone" className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm bg-white" />
+                            <input type="email" value={coord.email} onChange={(e) => { const newCoords = [...newCollege.coordinators]; newCoords[idx].email = e.target.value; setNewCollege({...newCollege, coordinators: newCoords}); }} placeholder="Email" className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 outline-none text-sm bg-white" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="p-5 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">

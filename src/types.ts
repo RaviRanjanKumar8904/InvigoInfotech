@@ -173,12 +173,20 @@ export interface MaterialProgress {
 }
 
 // Partner Colleges
+export interface CollegeCoordinator {
+  name: string;
+  phone: string;
+  email: string;
+}
+
 export interface PartnerCollege {
   id: string;
   collegeName: string;
   coordinatorName: string;
   coordinatorPhone: string;
   coordinatorEmail: string;
+  coordinators?: CollegeCoordinator[];
   state?: string;
+  type?: string;
   createdAt: string;
 }

@@ -10166,15 +10166,6 @@
       "createdAt": "2026-07-01T05:37:23.943Z"
     },
     {
-      "id": "hardcoded_beu_543",
-      "collegeName": "Gaya College of Engineering",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Bihar",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
       "id": "hardcoded_beu_544",
       "collegeName": "Gaya Evening College",
       "coordinatorName": "",
@@ -10643,35 +10634,8 @@
       "createdAt": "2026-07-01T05:37:23.943Z"
     },
     {
-      "id": "hardcoded_beu_596",
-      "collegeName": "Government Engineering College Aurangabad",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Maharashtra",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
-      "id": "hardcoded_beu_597",
-      "collegeName": "Government Engineering College Lakhisarai",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Haryana",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
       "id": "hardcoded_beu_598",
       "collegeName": "Government Engineering College Raipur",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Delhi",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
-      "id": "hardcoded_beu_599",
-      "collegeName": "Government Engineering College Samastipur",
       "coordinatorName": "",
       "coordinatorPhone": "",
       "coordinatorEmail": "",
@@ -13559,15 +13523,6 @@
       "createdAt": "2026-07-01T05:37:23.943Z"
     },
     {
-      "id": "hardcoded_beu_920",
-      "collegeName": "Late Gayaprasad College",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Uttar Pradesh",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
       "id": "hardcoded_beu_921",
       "collegeName": "Late Kamaruddin Memorial Degree College",
       "coordinatorName": "",
@@ -14411,15 +14366,6 @@
       "coordinatorPhone": "",
       "coordinatorEmail": "",
       "state": "Uttar Pradesh",
-      "createdAt": "2026-07-01T05:37:23.943Z"
-    },
-    {
-      "id": "hardcoded_beu_1015",
-      "collegeName": "MAHILA MAHAVIDYALAYA",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Gujarat",
       "createdAt": "2026-07-01T05:37:23.943Z"
     },
     {
@@ -21587,15 +21533,6 @@
       "createdAt": "2026-07-01T05:37:23.944Z"
     },
     {
-      "id": "hardcoded_beu_1812",
-      "collegeName": "St.Ann's College for Women",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "Andhra Pradesh",
-      "createdAt": "2026-07-01T05:37:23.944Z"
-    },
-    {
       "id": "hardcoded_beu_1813",
       "collegeName": "St.Anne's College of Engineering and Technology",
       "coordinatorName": "",
@@ -23054,15 +22991,6 @@
       "createdAt": "2026-07-01T05:37:23.944Z"
     },
     {
-      "id": "hardcoded_beu_1975",
-      "collegeName": "Vidyasagar College",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "West Bengal",
-      "createdAt": "2026-07-01T05:37:23.944Z"
-    },
-    {
       "id": "hardcoded_beu_1976",
       "collegeName": "Vidyasagar College for Women",
       "coordinatorName": "",
@@ -23504,15 +23432,6 @@
       "createdAt": "2026-07-01T05:37:23.944Z"
     },
     {
-      "id": "hardcoded_beu_2025",
-      "collegeName": "Women's College",
-      "coordinatorName": "",
-      "coordinatorPhone": "",
-      "coordinatorEmail": "",
-      "state": "West Bengal",
-      "createdAt": "2026-07-01T05:37:23.944Z"
-    },
-    {
       "id": "hardcoded_beu_2026",
       "collegeName": "Women's Training College",
       "coordinatorName": "",
@@ -23574,6 +23493,358 @@
       "coordinatorEmail": "",
       "state": "Uttar Pradesh",
       "createdAt": "2026-07-01T05:37:23.944Z"
+    },
+    {
+      "id": "hardcoded_poly_0",
+      "collegeName": "Government Polytechnic Patna",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.694Z"
+    },
+    {
+      "id": "hardcoded_poly_1",
+      "collegeName": "New Government Polytechnic Patna",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_2",
+      "collegeName": "Government Womens Polytechnic Patna",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_3",
+      "collegeName": "Government Polytechnic Muzaffarpur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_4",
+      "collegeName": "Government Womens Polytechnic Muzaffarpur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_5",
+      "collegeName": "Government Polytechnic Darbhanga",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_6",
+      "collegeName": "Government Polytechnic Barauni",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_7",
+      "collegeName": "Government Polytechnic Purnea",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_8",
+      "collegeName": "Government Polytechnic Saharsa",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_9",
+      "collegeName": "Government Polytechnic Bhagalpur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_10",
+      "collegeName": "Government Polytechnic Gaya",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_11",
+      "collegeName": "Government Polytechnic Chapra",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_12",
+      "collegeName": "Government Polytechnic Gopalganj",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_13",
+      "collegeName": "Government Polytechnic Katihar",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_14",
+      "collegeName": "Government Polytechnic Vaishali",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_15",
+      "collegeName": "Government Polytechnic Lakhisarai",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_16",
+      "collegeName": "Government Polytechnic Dehri on Sone",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_17",
+      "collegeName": "Government Polytechnic Asthawan",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_18",
+      "collegeName": "Government Polytechnic Sitamarhi",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_19",
+      "collegeName": "Government Polytechnic Kaimur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_20",
+      "collegeName": "Government Polytechnic Jamui",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_21",
+      "collegeName": "Government Polytechnic Tekari",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_22",
+      "collegeName": "Government Polytechnic Sheohar",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_23",
+      "collegeName": "Government Polytechnic Motihari",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_24",
+      "collegeName": "Government Polytechnic Madhubani",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_25",
+      "collegeName": "B K N S Government Polytechnic Gopalganj",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_26",
+      "collegeName": "Government Polytechnic Araria",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_27",
+      "collegeName": "Government Polytechnic Nawada",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_28",
+      "collegeName": "Government Polytechnic Siwan",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_29",
+      "collegeName": "Government Polytechnic Aurangabad",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_30",
+      "collegeName": "Government Polytechnic Khagaria",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_31",
+      "collegeName": "Government Polytechnic Arwal",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_32",
+      "collegeName": "Government Polytechnic Jehanabad",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_33",
+      "collegeName": "Government Polytechnic Buxar",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_34",
+      "collegeName": "Government Polytechnic West Champaran",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_35",
+      "collegeName": "Government Polytechnic Sheikhpura",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_36",
+      "collegeName": "Government Polytechnic Munger",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_37",
+      "collegeName": "Government Polytechnic Supaul",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_38",
+      "collegeName": "Government Polytechnic Banka",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_39",
+      "collegeName": "Government Polytechnic Madhepura",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_40",
+      "collegeName": "Government Polytechnic Bhojpur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_41",
+      "collegeName": "Government Polytechnic Kishanganj",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_42",
+      "collegeName": "Government Polytechnic Samastipur",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
+    },
+    {
+      "id": "hardcoded_poly_43",
+      "collegeName": "Government Polytechnic Begusarai",
+      "type": "Diploma",
+      "state": "Bihar",
+      "coordinators": [],
+      "createdAt": "2026-07-01T06:48:31.695Z"
     }
   ],
   "FAQS": [
