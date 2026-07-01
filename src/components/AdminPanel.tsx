@@ -789,7 +789,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       };
 
       if (isEditingDomain && editingDomainId) {
-        await updateDoc(doc(db, 'domains', editingDomainId), domainData);
+        const existingDomain = allDomains.find(d => d.id === editingDomainId);
+        await setDoc(doc(db, 'domains', editingDomainId), { ...domainData, phases: existingDomain?.phases || [] }, { merge: true });
         addLog(`Updated domain: ${newDomain.title}`, 'setting');
       } else {
         domainData.phases = [];
@@ -2463,32 +2464,30 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       </div>
                       <p className="text-xs text-slate-600 line-clamp-2">{domain.shortDesc}</p>
                       <div className="flex gap-2">
+                        <button onClick={() => {
+                          setIsEditingDomain(true);
+                          setEditingDomainId(domain.id);
+                          setNewDomain({
+                            title: domain.title,
+                            category: domain.category as any,
+                            shortDesc: domain.shortDesc,
+                            iconName: domain.iconName || 'CodeXml',
+                            durationWeeks: domain.durationWeeks?.join(',') || '4,8,12',
+                            targetDegrees: domain.targetDegrees?.join(',') || '',
+                            skills: domain.skills?.join(',') || '',
+                            toolsAndTech: domain.toolsAndTech?.join(',') || '',
+                            gradient: domain.gradient || 'from-blue-500 via-indigo-600 to-purple-700',
+                            imageUrl: domain.imageUrl || '',
+                            internshipReportLink: domain.internshipReportLink || ''
+                          });
+                          setShowAddDomainModal(true);
+                        }} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 cursor-pointer flex items-center gap-1">
+                          <Edit3 className="h-3 w-3" /> Edit
+                        </button>
                         {firestoreDomains.find(d => d.id === domain.id) && (
-                          <>
-                            <button onClick={() => {
-                              setIsEditingDomain(true);
-                              setEditingDomainId(domain.id);
-                              setNewDomain({
-                                title: domain.title,
-                                category: domain.category as any,
-                                shortDesc: domain.shortDesc,
-                                iconName: domain.iconName || 'CodeXml',
-                                durationWeeks: domain.durationWeeks?.join(',') || '4,8,12',
-                                targetDegrees: domain.targetDegrees?.join(',') || '',
-                                skills: domain.skills?.join(',') || '',
-                                toolsAndTech: domain.toolsAndTech?.join(',') || '',
-                                gradient: domain.gradient || 'from-blue-500 via-indigo-600 to-purple-700',
-                                imageUrl: domain.imageUrl || '',
-                                internshipReportLink: domain.internshipReportLink || ''
-                              });
-                              setShowAddDomainModal(true);
-                            }} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 cursor-pointer flex items-center gap-1">
-                              <Edit3 className="h-3 w-3" /> Edit
-                            </button>
-                            <button onClick={() => setConfirmAction({ message: `Delete domain "${domain.title}"? This cannot be undone.`, onConfirm: () => { handleRemoveDomain(domain.id); setConfirmAction(null); } })} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 cursor-pointer flex items-center gap-1">
-                              <Trash2 className="h-3 w-3" /> Remove
-                            </button>
-                          </>
+                          <button onClick={() => setConfirmAction({ message: `Delete domain "${domain.title}"? This cannot be undone.`, onConfirm: () => { handleRemoveDomain(domain.id); setConfirmAction(null); } })} className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 cursor-pointer flex items-center gap-1">
+                            <Trash2 className="h-3 w-3" /> Remove
+                          </button>
                         )}
                         <span className="text-[10px] text-slate-400 self-center">{domain.durationWeeks?.join('/')} weeks</span>
                       </div>
