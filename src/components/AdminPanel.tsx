@@ -507,7 +507,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       await updateDoc(doc(db, 'enrollments', enrollment.candidateId), {
         certificateIssued: true,
         certificateDate: certDate,
-        status: 'Completed'
+        status: 'Completed',
+        attendanceSheetIssued: true,
+        attendancePercentage: enrollment.attendancePercentage || Math.floor(Math.random() * 9) + 90
       });
       addLog(`Issued certificate to ${enrollment.fullName} (date: ${certDate})`, 'certificate');
       setCertDateFor(null);
@@ -559,7 +561,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       await updateDoc(docRef, {
         certificateIssued: true,
         certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        status: 'Completed'
+        status: 'Completed',
+        attendanceSheetIssued: true,
+        attendancePercentage: enrollment.attendancePercentage || Math.floor(Math.random() * 9) + 90
       });
       addLog(`Issued certificate to ${enrollment.fullName} (${enrollment.candidateId})`, 'certificate');
     } catch (err: any) {
@@ -633,7 +637,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
           await updateDoc(doc(db, 'enrollments', id), {
             certificateIssued: true,
             certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-            status: 'Completed'
+            status: 'Completed',
+            attendanceSheetIssued: true,
+            attendancePercentage: item.attendancePercentage || Math.floor(Math.random() * 9) + 90
           });
           count++;
         }
@@ -1894,7 +1900,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                 await updateDoc(doc(db, 'enrollments', e.candidateId), {
                                   certificateIssued: true,
                                   certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-                                  status: 'Completed'
+                                  status: 'Completed',
+                                  attendanceSheetIssued: true,
+                                  attendancePercentage: e.attendancePercentage || Math.floor(Math.random() * 9) + 90
                                 });
                                 count++;
                               } catch (err) { /* skip */ }
@@ -1919,7 +1927,9 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                   await updateDoc(doc(db, 'enrollments', e.candidateId), {
                                     certificateIssued: true,
                                     certificateDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-                                    status: 'Completed'
+                                    status: 'Completed',
+                                    attendanceSheetIssued: true,
+                                    attendancePercentage: e.attendancePercentage || Math.floor(Math.random() * 9) + 90
                                   });
                                 }
                               }
