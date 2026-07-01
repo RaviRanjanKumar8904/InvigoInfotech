@@ -188,7 +188,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
     title: '', category: 'Tech' as 'Tech' | 'Management' | 'Design' | 'Hardware' | 'Specialized',
     shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12',
     targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '',
-    gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: ''
+    gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '', internshipReportLink: ''
   });
 
   // Study Materials
@@ -785,6 +785,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
         toolsAndTech: newDomain.toolsAndTech.split(',').map(s => s.trim()).filter(Boolean),
         gradient: newDomain.gradient,
         imageUrl: newDomain.imageUrl,
+        internshipReportLink: newDomain.internshipReportLink,
       };
 
       if (isEditingDomain && editingDomainId) {
@@ -798,7 +799,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
       setShowAddDomainModal(false);
       setIsEditingDomain(false);
       setEditingDomainId(null);
-      setNewDomain({ title: '', category: 'Tech', shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12', targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '', gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '' });
+      setNewDomain({ title: '', category: 'Tech', shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12', targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '', gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '', internshipReportLink: '' });
     } catch (err) { console.error(err); }
   };
 
@@ -2437,7 +2438,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <h2 className="text-xl font-bold text-slate-800">Domain Management</h2>
                   <p className="text-xs text-slate-500 mt-1">Add, edit, or remove internship domains</p>
                 </div>
-                <button onClick={() => { setIsEditingDomain(false); setEditingDomainId(null); setNewDomain({ title: '', category: 'Tech', shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12', targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '', gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '' }); setShowAddDomainModal(true); }} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                <button onClick={() => { setIsEditingDomain(false); setEditingDomainId(null); setNewDomain({ title: '', category: 'Tech', shortDesc: '', iconName: 'CodeXml', durationWeeks: '4,8,12', targetDegrees: 'B.Tech,Diploma', skills: '', toolsAndTech: '', gradient: 'from-blue-500 via-indigo-600 to-purple-700', imageUrl: '', internshipReportLink: '' }); setShowAddDomainModal(true); }} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
                   <Plus className="h-4 w-4" /> Add New Domain
                 </button>
               </div>
@@ -2477,7 +2478,8 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                                 skills: domain.skills?.join(',') || '',
                                 toolsAndTech: domain.toolsAndTech?.join(',') || '',
                                 gradient: domain.gradient || 'from-blue-500 via-indigo-600 to-purple-700',
-                                imageUrl: domain.imageUrl || ''
+                                imageUrl: domain.imageUrl || '',
+                                internshipReportLink: domain.internshipReportLink || ''
                               });
                               setShowAddDomainModal(true);
                             }} className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-200 cursor-pointer flex items-center gap-1">
@@ -3519,6 +3521,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                   <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Durations (comma separated)</label><input type="text" value={newDomain.durationWeeks} onChange={e => setNewDomain({...newDomain, durationWeeks: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
                 </div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Image URL (Optional)</label><input type="text" value={newDomain.imageUrl} onChange={e => setNewDomain({...newDomain, imageUrl: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="/images/my-domain.png" /></div>
+                <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Internship Report Link (Optional)</label><input type="text" value={newDomain.internshipReportLink} onChange={e => setNewDomain({...newDomain, internshipReportLink: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="https://docs.google.com/..." /></div>
                 <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Skills (comma separated)</label><input type="text" value={newDomain.skills} onChange={e => setNewDomain({...newDomain, skills: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1"><label className="text-xs font-bold text-slate-700">Target Degrees</label><input type="text" value={newDomain.targetDegrees} onChange={e => setNewDomain({...newDomain, targetDegrees: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" placeholder="B.Tech, BCA" /></div>

@@ -1609,7 +1609,15 @@ export default function StudentNexus({
               </div>
               
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
-                {reportLink ? (
+                {!activeEnrollment.certificateIssued ? (
+                  <div className="space-y-4 py-6">
+                    <Lock className="h-12 w-12 text-slate-400 mx-auto" />
+                    <div>
+                      <h4 className="text-lg font-bold text-slate-800">Report Locked</h4>
+                      <p className="text-sm text-slate-500 mt-1">Your internship report will be unlocked and visible here once your certificate is officially issued by the administration.</p>
+                    </div>
+                  </div>
+                ) : reportLink ? (
                   <div className="space-y-4">
                     <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
                     <div>
