@@ -82,15 +82,16 @@ export default function EnrollmentWizard({
         HARDCODED_COLLEGES.forEach(c => mergedMap.set(c.id, { ...c }));
         
         // Add the massive 10k list
-        EXTENDED_COLLEGES.forEach((name, i) => {
+        EXTENDED_COLLEGES.forEach((college, i) => {
           const id = `extended_${i}`;
-          if (!Array.from(mergedMap.values()).some(c => c.collegeName.toLowerCase() === name.toLowerCase())) {
+          if (!Array.from(mergedMap.values()).some(c => c.collegeName.toLowerCase() === college.name.toLowerCase())) {
             mergedMap.set(id, {
               id,
-              collegeName: name,
+              collegeName: college.name,
               coordinatorName: '',
               coordinatorPhone: '',
               coordinatorEmail: '',
+              state: college.state || '',
               createdAt: new Date().toISOString()
             });
           }

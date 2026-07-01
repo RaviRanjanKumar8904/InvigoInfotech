@@ -2906,7 +2906,7 @@ export default function AdminPanel({ currentUser, setCurrentTab }: AdminPanelPro
                       onClick={() => {
                         setIsEditingCollege(false);
                         setEditingCollegeId(null);
-                        setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '' });
+                        setNewCollege({ collegeName: '', coordinatorName: '', coordinatorPhone: '', coordinatorEmail: '', state: '' });
                         setShowAddCollegeModal(true);
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2"

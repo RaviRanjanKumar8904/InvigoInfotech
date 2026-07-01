@@ -74,11 +74,11 @@ export const HARDCODED_COLLEGES = [
   "Buddha Institute of Technology Gaya"
 ].map(name => ({ name, state: "Bihar" })).concat(EXTENDED_COLLEGES).map((college, index) => ({
   id: `hardcoded_beu_${index}`,
-  collegeName: typeof college === 'string' ? college : (college.name || college),
+  collegeName: college.name,
   coordinatorName: "",
   coordinatorPhone: "",
   coordinatorEmail: "",
-  state: typeof college === 'string' ? '' : (college.state || ''),
+  state: college.state || '',
   createdAt: new Date().toISOString()
 }));
 
