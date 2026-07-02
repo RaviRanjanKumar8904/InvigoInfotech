@@ -287,7 +287,8 @@ async function buildDocument(
       { text: startFmt.split(' ')[0] + ' ' + remDate + ' ) ', bold: true },
       { text: 'in ', bold: false },
       { text: 'Invigo Infotech', bold: true },
-      { text: '. We found the candidate sincere, hardworking, technically sound & result oriented and Scored ', bold: false },
+      { text: '. We found the candidate sincere, hardworking, technically sound & result oriented and scored', bold: false },
+      { text: ' ', bold: false },
       { text: opts.grade || 'Good', bold: true },
       { text: ' in the Assessment test. ', bold: false },
       { text: 'We wish them all the best for future endeavors.', bold: false }

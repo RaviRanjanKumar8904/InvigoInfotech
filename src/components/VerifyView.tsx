@@ -6,6 +6,27 @@ import { motion } from 'motion/react';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// Helper functions for date formatting
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+};
+
+const getEndDate = (startDate: string, durationWeeks: number) => {
+  if (!startDate) return '';
+  try {
+    const start = new Date(startDate);
+    const end = new Date(start.getTime() + durationWeeks * 7 * 24 * 60 * 60 * 1000);
+    return end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return startDate;
+  }
+};
 
 interface VerifyViewProps {
   enrollments: EnrollmentState[];
@@ -48,9 +69,10 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
         durationWeeks: localMatch.durationWeeks,
         startDate: localMatch.startDate,
         status: localMatch.status === 'In Progress' ? 'In Progress' : 'Completed',
-        completionDate: localMatch.status === 'In Progress' ? 'Underway' : 'Verified & Active',
+        completionDate: getEndDate(localMatch.startDate, localMatch.durationWeeks),
         grade: localMatch.status === 'In Progress' ? 'Ongoing' : 'Grade A Passed',
-        verificationStatus: 'Active Student Record Verified'
+        verificationStatus: 'Active Student Record Verified',
+        rawEnrollment: localMatch
       });
       setIsVerifying(false);
       return;
@@ -94,9 +116,10 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
           durationWeeks: remoteEnroll.durationWeeks,
           startDate: remoteEnroll.startDate,
           status: remoteEnroll.status,
-          completionDate: remoteEnroll.certificateDate || 'Verified & Active',
+          completionDate: getEndDate(remoteEnroll.startDate, remoteEnroll.durationWeeks),
           grade: remoteEnroll.testScore && remoteEnroll.testScore >= 80 ? 'Excellent' : remoteEnroll.testScore && remoteEnroll.testScore >= 60 ? 'Good' : 'Grade A Passed',
-          verificationStatus: remoteEnroll.certificateIssued ? 'Authentic Certificate Issued' : 'Active Student Record Verified'
+          verificationStatus: remoteEnroll.certificateIssued ? 'Authentic Certificate Issued' : 'Active Student Record Verified',
+          rawEnrollment: remoteEnroll
         });
       } else {
         setSearchResult(null);
@@ -252,8 +275,8 @@ export default function VerifyView({ enrollments, setCurrentTab }: VerifyViewPro
                     </div>
 
                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-1">
-                      <span className="text-[10px] uppercase text-slate-400 block font-bold">Completion Date</span>
-                      <p className="text-xs font-extrabold text-slate-850">{searchResult.completionDate}</p>
+                      <span className="text-[10px] uppercase text-slate-400 block font-bold">Internship Period</span>
+                      <p className="text-xs font-extrabold text-slate-850">{formatDate(searchResult.startDate)} - {searchResult.completionDate}</p>
                     </div>
 
                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 space-y-1">
